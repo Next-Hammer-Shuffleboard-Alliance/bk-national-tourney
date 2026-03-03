@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
 // App version
-const APP_VERSION = "3.1.2";
+const APP_VERSION = "3.1.3";
 
 // Mobile detection hook
 function useIsMobile(breakpoint = 600) {
@@ -105,7 +105,7 @@ export default function BKNationalTournament() {
   const [showBulkInput, setShowBulkInput] = useState(false);
   const [notification, setNotification] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
-  const [bracketViewMode, setBracketViewMode] = useState("list");
+  
   const [organizerBracketTab, setOrganizerBracketTab] = useState("main"); // "main" | "consolation"
   const [myTeamId, setMyTeamIdRaw] = useState(""); // persists across view switches
   const [completionStatsView, setCompletionStatsView] = useState("main"); // "main" | "consolation" for completion banner
@@ -194,7 +194,7 @@ export default function BKNationalTournament() {
       const link = document.createElement("link");
       link.rel = "icon";
       link.setAttribute("data-app", "bk-national");
-      link.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏆</text></svg>";
+      link.href = "data:image/png;base64,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";
       document.head.appendChild(link);
     }
   }, []);
@@ -1488,11 +1488,6 @@ export default function BKNationalTournament() {
                     🥈 Consolation
                   </button>
                 </div>
-                {/* List vs Tree toggle */}
-                <div style={{ display: "flex", gap: 3, background: "#111", borderRadius: 8, padding: 3 }}>
-                  <button style={bracketViewMode === "list" ? S.viewBtnOn : S.viewBtnOff} onClick={() => setBracketViewMode("list")}>📋 List</button>
-                  <button style={bracketViewMode === "tree" ? S.viewBtnOn : S.viewBtnOff} onClick={() => setBracketViewMode("tree")}>🌳 Tree</button>
-                </div>
                 <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
                   {organizerBracketTab === "main" && (() => {
                     const nextRound = getNextSimRound("main");
@@ -1523,77 +1518,43 @@ export default function BKNationalTournament() {
               </div>
             )}
 
-            {/* ── MAIN BRACKET TAB ── */}
+            {/* ── MAIN BRACKET ── */}
             {state.phase !== "setup" && organizerBracketTab === "main" && (
-              <>
-                {bracketViewMode === "tree" && (
-                  <div style={{ ...S.card, borderLeft: "3px solid #3A8E6E" }}>
-                    <h2 style={{ ...S.cardTitle, color: "#3A8E6E" }}>🏆 Main Bracket</h2>
-                    <p style={S.hint}>64-team single elimination · Winners advance through each round</p>
-                    <BracketTree
-                      rounds={state.mainBracket} tLabel={tLabel} editable={true}
-                      onScore={(rIdx, mId, a, b) => enterBracketScoreWithCheck("main", rIdx, mId, a, b)}
-                      onAssignCourt={(rIdx, mId, c) => assignCourt("main", rIdx, mId, c)}
-                      accentColor="#3A8E6E" />
-                    {mainWinner && (
-                      <div style={{ textAlign: "center", marginTop: 16, padding: "16px 20px", background: "#0a120a", border: "1px solid #3A8E6E30", borderRadius: 10 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: "#3A8E6E", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>🏆 Champion</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{tFull(mainWinner)}</div>
-                      </div>
-                    )}
+              <div style={{ ...S.card, borderLeft: "3px solid #3A8E6E" }}>
+                <h2 style={{ ...S.cardTitle, color: "#3A8E6E" }}>🏆 Main Bracket</h2>
+                <p style={S.hint}>64-team single elimination · Winners advance through each round</p>
+                <BracketTree
+                  rounds={state.mainBracket} tLabel={tLabel} editable={true}
+                  onScore={(rIdx, mId, a, b) => enterBracketScoreWithCheck("main", rIdx, mId, a, b)}
+                  onAssignCourt={(rIdx, mId, c) => assignCourt("main", rIdx, mId, c)}
+                  accentColor="#3A8E6E" />
+                {mainWinner && (
+                  <div style={{ textAlign: "center", marginTop: 16, padding: "16px 20px", background: "#0a120a", border: "1px solid #3A8E6E30", borderRadius: 10 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#3A8E6E", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>🏆 Champion</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{tFull(mainWinner)}</div>
                   </div>
                 )}
-                {bracketViewMode === "list" && (
-                  <>
-                    <BracketListView title="🏆 Main Bracket" subtitle="64-team single elimination" rounds={state.mainBracket}
-                      tLabel={tLabel} bracketType="main" onScore={enterBracketScoreWithCheck}
-                      onAssignCourt={assignCourt} accent="#3A8E6E" />
-                    {mainWinner && (
-                      <div style={{ textAlign: "center", padding: "20px", background: "#0a120a", border: "1px solid #3A8E6E30", borderRadius: 12, marginBottom: 20 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: "#3A8E6E", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>🏆 Main Bracket Champion</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{tFull(mainWinner)}</div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </>
+              </div>
             )}
 
-            {/* ── CONSOLATION BRACKET TAB ── */}
+            {/* ── CONSOLATION BRACKET ── */}
             {state.phase !== "setup" && organizerBracketTab === "consolation" && (
               <>
                 {consolationBracketGenerated ? (
-                  <>
-                    {bracketViewMode === "tree" && (
-                      <div style={{ ...S.card, borderLeft: "3px solid #D4A843" }}>
-                        <h2 style={{ ...S.cardTitle, color: "#D4A843" }}>🥈 Consolation Bracket</h2>
-                        <p style={S.hint}>First Match Losers — Single Elimination</p>
-                        <BracketTree rounds={state.consolationBracket} tLabel={tLabel} editable={true}
-                          onScore={(rIdx, mId, a, b) => enterBracketScoreWithCheck("consolation", rIdx, mId, a, b)}
-                          onAssignCourt={(rIdx, mId, c) => assignCourt("consolation", rIdx, mId, c)}
-                          accentColor="#D4A843" />
-                        {consolationWinner && (
-                          <div style={{ textAlign: "center", marginTop: 16, padding: "16px 20px", background: "#12100a", border: "1px solid #D4A84330", borderRadius: 10 }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: "#D4A843", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>🥈 Consolation Champion</div>
-                            <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{tFull(consolationWinner)}</div>
-                          </div>
-                        )}
+                  <div style={{ ...S.card, borderLeft: "3px solid #D4A843" }}>
+                    <h2 style={{ ...S.cardTitle, color: "#D4A843" }}>🥈 Consolation Bracket</h2>
+                    <p style={S.hint}>First Match Losers — Single Elimination</p>
+                    <BracketTree rounds={state.consolationBracket} tLabel={tLabel} editable={true}
+                      onScore={(rIdx, mId, a, b) => enterBracketScoreWithCheck("consolation", rIdx, mId, a, b)}
+                      onAssignCourt={(rIdx, mId, c) => assignCourt("consolation", rIdx, mId, c)}
+                      accentColor="#D4A843" />
+                    {consolationWinner && (
+                      <div style={{ textAlign: "center", marginTop: 16, padding: "16px 20px", background: "#12100a", border: "1px solid #D4A84330", borderRadius: 10 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#D4A843", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>🥈 Consolation Champion</div>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{tFull(consolationWinner)}</div>
                       </div>
                     )}
-                    {bracketViewMode === "list" && (
-                      <>
-                        <BracketListView title="🥈 Consolation Bracket" subtitle="First Match Losers" rounds={state.consolationBracket}
-                          tLabel={tLabel} bracketType="consolation" onScore={enterBracketScoreWithCheck}
-                          onAssignCourt={assignCourt} accent="#D4A843" />
-                        {consolationWinner && (
-                          <div style={{ textAlign: "center", padding: "20px", background: "#12100a", border: "1px solid #D4A84330", borderRadius: 12, marginBottom: 20 }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: "#D4A843", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>🥈 Consolation Champion</div>
-                            <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{tFull(consolationWinner)}</div>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </>
+                  </div>
                 ) : noConsolation ? (
                   <div style={S.card}><p style={{ color: "#555", fontSize: 14, textAlign: "center" }}>No consolation bracket.</p></div>
                 ) : (
@@ -1909,133 +1870,6 @@ function BracketTree({ rounds, tLabel, onScore, onAssignCourt, editable, accentC
           </div>
         );
       })()}
-    </div>
-  );
-}
-
-// ═════════════════════════════════════════════════════════════════
-// BRACKET LIST VIEW
-// ═════════════════════════════════════════════════════════════════
-function BracketListView({ title, subtitle, rounds, tLabel, bracketType, onScore, onAssignCourt, accent }) {
-  function getRoundName(rIdx, totalRounds) {
-    const names6 = ["Round 1", "Round of 32", "Round of 16", "Quarterfinals", "Semifinals", "Final"]; const names5 = ["Round 1", "Round of 16", "Quarterfinals", "Semifinals", "Final"];
-    const names4 = ["Round of 16", "Quarterfinals", "Semifinals", "Final"];
-    const names3 = ["Quarterfinals", "Semifinals", "Final"];
-    const names2 = ["Semifinals", "Final"];
-    const names1 = ["Final"];
-    const map = { 6: names6, 5: names5, 4: names4, 3: names3, 2: names2, 1: names1 };
-    return (map[totalRounds] || [])[rIdx] || `Round ${rIdx + 1}`;
-  }
-  return (
-    <div style={{ ...S.card, borderLeft: `3px solid ${accent}` }}>
-      <h2 style={{ ...S.cardTitle, color: accent }}>{title}</h2>
-      <p style={S.hint}>{subtitle}</p>
-      {rounds.map((round, rIdx) => {
-        const realMatches = round.matches.filter(m => m.team1Id && m.team2Id);
-        const completed = round.matches.filter(m => m.status === "completed").length;
-        const total = round.matches.length;
-        const allDone = completed === total;
-        const hasActive = round.matches.some(m => m.status === "on_court");
-        return (
-          <div key={rIdx} style={{ marginBottom: 24 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-              <h3 style={{ ...S.roundTitle, margin: 0 }}>{getRoundName(rIdx, rounds.length)}</h3>
-              <span style={{ fontSize: 10, fontWeight: 600, color: allDone ? accent : hasActive ? "#D4A843" : "#444" }}>
-                {allDone ? "✓ Complete" : `${completed}/${total}`}
-              </span>
-            </div>
-            <div className="vt-match-grid" style={S.matchGrid}>
-              {round.matches.map(match => (
-                <BracketMatchCard key={match.id} match={match} tLabel={tLabel}
-                  onScore={(a, b) => onScore(bracketType, rIdx, match.id, a, b)}
-                  onAssignCourt={(c) => onAssignCourt(bracketType, rIdx, match.id, c)}
-                  accent={accent} />
-              ))}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function BracketMatchCard({ match, tLabel, onScore, onAssignCourt, accent }) {
-  const [showScore, setShowScore] = useState(false);
-  const [s1, setS1] = useState("");
-  const [s2, setS2] = useState("");
-  const [scoreError, setScoreError] = useState("");
-  const canPlay = match.team1Id && match.team2Id && match.status !== "completed";
-  const isForfeit = match.scores?.forfeit;
-
-  function submit() {
-    const a = parseInt(s1), b = parseInt(s2);
-    if (isNaN(a) || isNaN(b)) { setScoreError("Enter both scores"); return; }
-    if (a === b) { setScoreError("Scores can't be tied"); return; }
-    setScoreError("");
-    onScore(a, b); setShowScore(false);
-  }
-
-  return (
-    <div style={{ ...S.matchCard, borderLeftColor: match.status === "completed" ? accent : match.court ? "#D4A843" : "#282828" }}>
-      <div style={S.matchHeader}>
-        <span style={S.matchNum}>M{match.matchNum}</span>
-        {match.court && <span style={{ ...S.courtTag, background: accent + "20", color: accent }}>Ct {match.court}</span>}
-        {match.status === "completed" && <span style={{ ...S.statusTag, color: accent }}>✓</span>}
-        {match.status === "on_court" && <span style={{ ...S.statusTag, color: "#D4A843" }}>●</span>}
-      </div>
-      <div style={S.matchTeams}>
-        <div style={{ ...S.matchTeam, fontWeight: match.winner === match.team1Id ? 700 : 400, color: match.team1Id ? (match.winner === match.team1Id ? "#fff" : "#666") : "#333" }}>
-          <span>{tLabel(match.team1Id)}</span>
-          {match.scores && !isForfeit && <span style={S.score}>{match.scores.team1}</span>}
-          {isForfeit && match.scores.forfeit === match.team1Id && <span style={S.ffTag}>FORFEIT</span>}
-        </div>
-        <div style={S.vs}>vs</div>
-        <div style={{ ...S.matchTeam, fontWeight: match.winner === match.team2Id ? 700 : 400, color: match.team2Id ? (match.winner === match.team2Id ? "#fff" : "#666") : "#333" }}>
-          <span>{tLabel(match.team2Id)}</span>
-          {match.scores && !isForfeit && <span style={S.score}>{match.scores.team2}</span>}
-          {isForfeit && match.scores.forfeit === match.team2Id && <span style={S.ffTag}>FORFEIT</span>}
-        </div>
-      </div>
-      {match.status === "on_court" && match.startedAt && (
-        <div style={{ fontSize: 10, color: "#D4A843", marginTop: 4 }}>Assigned {new Date(match.startedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</div>
-      )}
-      {match.status === "completed" && (match.completedAt || match.startedAt) && (
-        <div style={{ fontSize: 10, color: "#444", marginTop: 4 }}>
-          {match.completedAt && `Completed ${new Date(match.completedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`}
-          {formatDuration(match.startedAt, match.completedAt) && ` · ⏱ ${formatDuration(match.startedAt, match.completedAt)}`}
-        </div>
-      )}
-      {canPlay && (
-        <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
-          {!match.court ? (
-            <select style={S.courtSelect} onChange={e => onAssignCourt(parseInt(e.target.value))} defaultValue="">
-              <option value="">Assign court...</option>
-              {Array.from({ length: TOTAL_COURTS }, (_, i) => <option key={i + 1} value={i + 1}>Court {i + 1}</option>)}
-            </select>
-          ) : (
-            <select style={S.courtSelect} value={match.court} onChange={e => onAssignCourt(e.target.value ? parseInt(e.target.value) : null)}>
-              <option value="">Remove court</option>
-              {Array.from({ length: TOTAL_COURTS }, (_, i) => <option key={i + 1} value={i + 1}>Court {i + 1}</option>)}
-            </select>
-          )}
-          {!showScore && (
-            <button style={S.btnSmPri} onClick={() => { setS1(""); setS2(""); setShowScore(true); }}>Enter Score</button>
-          )}
-        </div>
-      )}
-      {match.status === "completed" && !showScore && (
-        <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-          <button style={S.btnSm} onClick={() => { setS1(String(match.scores?.team1 || "")); setS2(String(match.scores?.team2 || "")); setShowScore(true); }}>✏️ Edit Score</button>
-        </div>
-      )}
-      {showScore && (
-        <div style={S.scoreEntryInline}>
-          <div style={S.scoreRow}><label style={S.scoreLabel}>{tLabel(match.team1Id)}</label><input style={S.scoreInput} type="number" value={s1} onChange={e => setS1(e.target.value)} placeholder="0" /></div>
-          <div style={S.scoreRow}><label style={S.scoreLabel}>{tLabel(match.team2Id)}</label><input style={S.scoreInput} type="number" value={s2} onChange={e => setS2(e.target.value)} placeholder="0" onKeyDown={e => e.key === "Enter" && submit()} /></div>
-          {scoreError && <span style={{ fontSize: 11, color: "#E85D3A" }}>{scoreError}</span>}
-          <div style={{ display: "flex", gap: 8 }}><button style={S.btnSmPri} onClick={submit}>Save</button><button style={S.btnSm} onClick={() => { setShowScore(false); setScoreError(""); }}>Cancel</button></div>
-        </div>
-      )}
     </div>
   );
 }
