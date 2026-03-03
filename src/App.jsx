@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
 // App version
-const APP_VERSION = "3.0.0";
+const APP_VERSION = "3.0.1";
 
 // Mobile detection hook
 function useIsMobile(breakpoint = 600) {
@@ -1288,17 +1288,17 @@ export default function BKNationalTournament() {
             {state.teams.length === 0 && (
               <div style={{ textAlign: "center", marginTop: 16 }}>
                 <button style={S.btnSec} onClick={() => {
-                  const fn = ["Alex","Blake","Casey","Drew","Eden","Flynn","Gray","Harper","Indigo","Jules","Kit","Lane","Morgan","Noel","Oak","Parker","Quinn","Riley","Sage","Taylor","Uri","Val","Wren","Xen","York","Zane","Ari","Bay","Cruz","Dale","Elm","Faye","Ash","Bram","Cleo","Dane","Esme","Finn","Gale","Hale","Iris","Jade","Kira","Lark","Milo","Nico","Opal","Pax","Remi","Skye","Tara","Uma","Vera","Wade","Xyla","Yara","Zora","Beau","Cass","Dex","Elio","Fern","Gia","Hugh"];
-                  const ln = ["Adams","Brooks","Chen","Davis","Evans","Foster","Garcia","Hayes","Ito","Jones","Kim","Lee","Miller","Nash","Ortiz","Park","Qin","Reyes","Shah","Torres","Ueda","Vega","Wang","Xu","Yang","Zhang","Bell","Cole","Diaz","Epp","Fry","Gill","Hart","Irwin","Jain","Kerr","Long","Moss","Ngo","Odom","Pike","Roth","Sato","Tran","Ueno","Voss","Webb","Xie","Yoon","Zhu","Baek","Clay","Dunn","Egan","Fox","Gold","Hood","Ives","Joy","Kang","Lowe","Mori","Nye","Rao"];
+                  const fn = ["Alex","Blake","Casey","Drew","Eden","Flynn","Gray","Harper","Indigo","Jules","Kit","Lane","Morgan","Noel","Oak","Parker","Quinn","Riley","Sage","Taylor","Uri","Val","Wren","Xen","York","Zane","Ari","Bay","Cruz","Dale","Elm","Faye","Ash","Bram","Cleo","Dane","Esme","Finn","Gale","Hale","Iris","Jade","Kira","Lark","Milo","Nico","Opal","Pax","Remi","Skye","Tara","Uma","Vera","Wade","Xyla","Yara","Zora","Beau","Cass","Dex","Elio","Fern","Gia","Hugh","Axel","Bree","Colt","Dawn","Ezra","Fern","Glen","Hope","Ivan","June","Knox","Luna","Mars","Nova","Owen","Peri","Rafe","Shay","Theo","Vail","Wynn","Zeke","Alma","Beck","Cora","Dell","Enid","Ford","Gene","Hugo","Isla","Joel","Kade","Leif","Mara","Neil","Orin","Penn","Reed","Suki","Troy","Vida","West","Zara","Blye","Chip","Dove","Elan","Flor","Greer","Haze","Ivy","Joss","Kael","Lux","Myra","Nero","Orla","Petra","Rue","Sol","Ty","Ursa"];
+                  const ln = ["Adams","Brooks","Chen","Davis","Evans","Foster","Garcia","Hayes","Ito","Jones","Kim","Lee","Miller","Nash","Ortiz","Park","Qin","Reyes","Shah","Torres","Ueda","Vega","Wang","Xu","Yang","Zhang","Bell","Cole","Diaz","Epp","Fry","Gill","Hart","Irwin","Jain","Kerr","Long","Moss","Ngo","Odom","Pike","Roth","Sato","Tran","Ueno","Voss","Webb","Xie","Yoon","Zhu","Baek","Clay","Dunn","Egan","Fox","Gold","Hood","Ives","Joy","Kang","Lowe","Mori","Nye","Rao","Ash","Bard","Cho","Dell","Fisk","Gray","Holt","Judd","Kline","Lam","Moon","Nagel","Oaks","Pham","Rusk","Stein","Thao","Vale","Ware","Yeo","Zinn","Bloom","Crane","Dyer","Ernst","Flores","Grant","Hess","Inman","Joyce","Kemp","Laird","Marsh","Noble","Pace","Quist","Rios","Scott","Thorne","Unger","Vance","Wolfe","Yeung","Zabel","Black","Cross","Drake","Elder","Frost","Grove","Hyde","Judd","Kent","Locke","Mohr","Neff","Oakes","Pratt","Quinn","Rush","Stark","Trask","Usher"];
                   const sf = shuffleArray(fn), sl = shuffleArray(ln);
                   const teams = [];
-                  for (let i = 0; i < 64; i += 2) {
+                  for (let i = 0; i < 128; i += 2) {
                     const pos = Math.floor(i / 2) + 1;
                     teams.push({ id: generateId(), player1First: sf[i], player1Last: sl[i], player2First: sf[i + 1], player2Last: sl[i + 1], bracketPosition: pos });
                   }
-                  setState(s => ({ ...s, teams: teams.slice(0, 32) }));
-                  showNotif("32 demo teams loaded at positions 1-32!");
-                }}>Load 32 Demo Teams (for testing)</button>
+                  setState(s => ({ ...s, teams }));
+                  showNotif("64 demo teams loaded at positions 1-64!");
+                }}>Load 64 Demo Teams (for testing)</button>
               </div>
             )}
           </div>
