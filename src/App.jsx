@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
 // App version
-const APP_VERSION = "3.1.0";
+const APP_VERSION = "3.1.1";
 
 // Mobile detection hook
 function useIsMobile(breakpoint = 600) {
@@ -90,6 +90,9 @@ export default function BKNationalTournament() {
   const isMobile = useIsMobile();
   const [state, setState] = useState(createInitialState);
   const [view, setView] = useState("player");
+  const [organizerUnlocked, setOrganizerUnlocked] = useState(false);
+  const tapCountRef = useRef(0);
+  const tapTimerRef = useRef(null);
   const [activeTab, setActiveTab] = useState("dashboard");
   const tournamentId = DEFAULT_TOURNAMENT_ID;
 
@@ -144,6 +147,7 @@ export default function BKNationalTournament() {
   // Subscribe to Firebase on mount
   useEffect(() => {
     import('./firebase.js').then(({ subscribeToTournament }) => {
+      if (typeof subscribeToTournament !== 'function') return;
       subscribeToTournament(tournamentId, (data) => {
         if (data && !isLocalUpdate.current) {
           try {
@@ -156,7 +160,7 @@ export default function BKNationalTournament() {
         isLocalUpdate.current = false;
         stateLoaded.current = true;
       });
-    });
+    }).catch(() => { /* firebase not available */ });
   }, [tournamentId]);
 
   // Auto-save state to Firebase on changes (debounced 500ms)
@@ -166,12 +170,13 @@ export default function BKNationalTournament() {
     saveTimer.current = setTimeout(() => {
       isLocalUpdate.current = true;
       import('./firebase.js').then(({ saveTournament }) => {
+        if (typeof saveTournament !== 'function') return;
         saveTournament(tournamentId, {
           state,
           announcements,
           savedAt: Date.now(),
         });
-      });
+      }).catch(() => { /* firebase not available */ });
     }, 500);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
   }, [state, announcements, tournamentId]);
@@ -994,18 +999,35 @@ export default function BKNationalTournament() {
       <header style={S.header}>
         <div style={{ ...S.headerRow, flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "flex-start" }}>
           <div>
-            <h1 style={{ ...S.title, fontSize: isMobile ? 24 : 30 }}>{TOURNAMENT_NAME}</h1>
+            <h1 style={{ ...S.title, fontSize: isMobile ? 24 : 30, cursor: "default", WebkitUserSelect: "none", userSelect: "none" }}
+              onClick={() => {
+                if (organizerUnlocked) return;
+                tapCountRef.current += 1;
+                clearTimeout(tapTimerRef.current);
+                if (tapCountRef.current >= 5) {
+                  tapCountRef.current = 0;
+                  setOrganizerUnlocked(true);
+                  setView("organizer");
+                } else {
+                  tapTimerRef.current = setTimeout(() => { tapCountRef.current = 0; }, 2000);
+                }
+              }}
+            >{TOURNAMENT_NAME}</h1>
             <p style={S.subtitle}>{TOURNAMENT_SUBTITLE}</p>
             <p style={S.meta}>📅 {TOURNAMENT_DATE}</p>
             <p style={S.meta}>📍 {TOURNAMENT_VENUE}</p>
           </div>
           <div style={S.viewToggle}>
-            <button style={view === "organizer" ? S.viewBtnOn : S.viewBtnOff} onClick={() => setView("organizer")}>
-              ⚙️ Organizer
-            </button>
-            <button style={view === "player" ? S.viewBtnOn : S.viewBtnOff} onClick={() => setView("player")}>
-              👤 Player View
-            </button>
+            {organizerUnlocked ? (
+              <>
+                <button style={view === "organizer" ? S.viewBtnOn : S.viewBtnOff} onClick={() => setView("organizer")}>
+                  ⚙️ Organizer
+                </button>
+                <button style={view === "player" ? S.viewBtnOn : S.viewBtnOff} onClick={() => setView("player")}>
+                  👤 Player View
+                </button>
+              </>
+            ) : null}
           </div>
         </div>
       </header>
@@ -1265,7 +1287,7 @@ export default function BKNationalTournament() {
                           <span style={{ fontSize: 9, fontWeight: 700, color: m.bracket === "Main" ? "#3A8E6E" : "#D4A843", textTransform: "uppercase", letterSpacing: "0.08em" }}>{m.bracket} · {m.roundName}</span>
                           <div style={{ fontSize: 13, color: "#bbb", marginTop: 2 }}>{tLabel(m.team1Id)} <span style={{ color: "#333" }}>vs</span> {tLabel(m.team2Id)}</div>
                         </div>
-                        <select style={S.courtSelect} onChange={e => { if (e.target.value) assignCourt(m.bracket.toLowerCase() === "main" ? "main" : "consolation", m.id, parseInt(e.target.value)); }}>
+                        <select style={S.courtSelect} onChange={e => { if (e.target.value) assignCourt(m.bracket.toLowerCase() === "main" ? "main" : "consolation", m.roundIdx, m.id, parseInt(e.target.value)); }}>
                           <option value="">Court...</option>
                           {Array.from({ length: TOTAL_COURTS }, (_, i) => i + 1).map(c => <option key={c} value={c}>Ct {c}</option>)}
                         </select>
