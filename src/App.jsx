@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
 // App version
-const APP_VERSION = "3.1.1";
+const APP_VERSION = "3.1.2";
 
 // Mobile detection hook
 function useIsMobile(breakpoint = 600) {
@@ -20,7 +20,7 @@ const TOTAL_COURTS = 10;
 const DEFAULT_TOURNAMENT_ID = "BK_National_2026";
 const TOURNAMENT_NAME = "Brooklyn National";
 const TOURNAMENT_SUBTITLE = "NYSA State Doubles Tournament";
-const TOURNAMENT_DATE = "Sat–Sun Jun 13–14, 2026";
+const TOURNAMENT_DATE = "Jun 13–14, 2026";
 const TOURNAMENT_VENUE = "Royal Palms Shuffleboard Club, Brooklyn, NY";
 
 // Day-round assignments (organizer can adjust)
@@ -93,7 +93,7 @@ export default function BKNationalTournament() {
   const [organizerUnlocked, setOrganizerUnlocked] = useState(false);
   const tapCountRef = useRef(0);
   const tapTimerRef = useRef(null);
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState("teams");
   const tournamentId = DEFAULT_TOURNAMENT_ID;
 
   const [teamForm, setTeamForm] = useState({
@@ -188,6 +188,14 @@ export default function BKNationalTournament() {
       meta.name = "viewport";
       meta.content = "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no";
       document.head.appendChild(meta);
+    }
+    // Set favicon (shuffleboard puck)
+    if (!document.querySelector('link[rel="icon"][data-app]')) {
+      const link = document.createElement("link");
+      link.rel = "icon";
+      link.setAttribute("data-app", "bk-national");
+      link.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏆</text></svg>";
+      document.head.appendChild(link);
     }
   }, []);
 
@@ -1032,44 +1040,6 @@ export default function BKNationalTournament() {
         </div>
       </header>
 
-      {view === "organizer" && <div style={S.phaseBar}>
-        {[
-          { label: "Setup", key: "setup" },
-          { label: "Round 1", key: "round1" },
-          { label: "Brackets", key: "brackets" },
-          { label: "Complete", key: "complete" },
-        ].map((step, i, arr) => {
-          const phaseOrder = ["setup", "playing", "complete"];
-          const currentIdx = phaseOrder.indexOf(state.phase);
-          const stepIdx = step.key === "setup" ? 0 : step.key === "round1" ? 1 : step.key === "brackets" ? 1 : 2;
-          const r1Done = mainR1Complete;
-          const done = (step.key === "setup" && currentIdx > 0) ||
-                       (step.key === "round1" && r1Done) ||
-                       (step.key === "brackets" && state.phase === "complete") ||
-                       (step.key === "complete" && state.phase === "complete");
-          const active = (step.key === "setup" && state.phase === "setup") ||
-                         (step.key === "round1" && state.phase === "playing" && !r1Done) ||
-                         (step.key === "brackets" && state.phase === "playing" && r1Done) ||
-                         (step.key === "complete" && state.phase === "complete");
-          return (
-            <div key={step.key} style={{ display: "flex", alignItems: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{
-                  width: 26, height: 26, borderRadius: "50%",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 12, fontWeight: 700,
-                  background: done ? "#3A8E6E" : active ? "#D4A843" : "#1e1e1e",
-                  color: done || active ? "#fff" : "#555",
-                  border: active ? "2px solid #D4A843" : "2px solid transparent",
-                }}>{done ? "✓" : i + 1}</div>
-                <span style={{ fontSize: 12, fontWeight: active ? 700 : 400, color: done ? "#3A8E6E" : active ? "#D4A843" : "#555" }}>{step.label}</span>
-              </div>
-              {i < arr.length - 1 && <div style={{ width: 32, height: 2, background: done ? "#3A8E6E" : "#1e1e1e", margin: "0 8px" }} />}
-            </div>
-          );
-        })}
-      </div>}
-
       {view === "organizer" && (
         <div style={{ ...S.tabBar, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           {[
@@ -1321,27 +1291,6 @@ export default function BKNationalTournament() {
                 </div>
               )}
 
-              {/* Day breakdown */}
-              <div style={{ ...S.card, marginTop: 16 }}>
-                <h3 style={{ ...S.cardTitle, fontSize: 14 }}>📅 Day Breakdown</h3>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                  {[1, 2].map(day => {
-                    const dStats = getDashboardStats(day);
-                    const pct = dStats.total > 0 ? Math.round(dStats.completed / dStats.total * 100) : 0;
-                    const isViewing = dayFilter === day;
-                    return (
-                      <div key={day} style={{ background: isViewing ? "#0d0d0a" : "#0d0d0d", border: `1px solid ${isViewing ? "#D4A84340" : "#1a1a1a"}`, borderRadius: 10, padding: "16px 20px", position: "relative" }}>
-                        {isViewing && <div style={{ position: "absolute", top: 10, right: 14, fontSize: 9, fontWeight: 700, color: "#D4A843", textTransform: "uppercase", background: "#D4A84315", padding: "2px 8px", borderRadius: 4 }}>Viewing</div>}
-                        <h4 style={{ fontSize: 14, fontWeight: 700, color: "#fff", margin: "0 0 8px" }}>Day {day} — {day === 1 ? "Saturday" : "Sunday"}</h4>
-                        <div style={{ height: 6, background: "#1a1a1a", borderRadius: 3, overflow: "hidden", marginBottom: 8 }}>
-                          <div style={{ width: `${pct}%`, height: "100%", background: "linear-gradient(90deg, #3A8E6E, #D4A843)", borderRadius: 3 }} />
-                        </div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>{dStats.completed} / {dStats.total} matches</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
             </div>
           );
         })()}
@@ -2842,7 +2791,6 @@ const S = {
   viewToggle: { display: "flex", gap: 3, background: "#111", borderRadius: 8, padding: 3 },
   viewBtnOn: { padding: "7px 14px", border: "none", background: "#1e1e1e", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 13, fontWeight: 600 },
   viewBtnOff: { padding: "7px 14px", border: "none", background: "transparent", color: "#555", borderRadius: 6, cursor: "pointer", fontSize: 13 },
-  phaseBar: { display: "flex", alignItems: "center", justifyContent: "center", padding: "16px 0", borderBottom: "1px solid #151515", flexWrap: "wrap", gap: 4 },
   tabBar: { display: "flex", gap: 0, borderBottom: "1px solid #151515" },
   tabOn: { padding: "13px 18px", border: "none", borderBottom: "2px solid #D4A843", background: "transparent", color: "#D4A843", cursor: "pointer", fontSize: 14, fontWeight: 600 },
   tabOff: { padding: "13px 18px", border: "none", borderBottom: "2px solid transparent", background: "transparent", color: "#555", cursor: "pointer", fontSize: 14 },
