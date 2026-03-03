@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
 // App version
-const APP_VERSION = "3.0.2";
+const APP_VERSION = "3.1.0";
 
 // Mobile detection hook
 function useIsMobile(breakpoint = 600) {
@@ -22,7 +22,20 @@ const TOURNAMENT_NAME = "Brooklyn National";
 const TOURNAMENT_SUBTITLE = "NYSA State Doubles Tournament";
 const TOURNAMENT_DATE = "Sat–Sun Jun 13–14, 2026";
 const TOURNAMENT_VENUE = "Royal Palms Shuffleboard Club, Brooklyn, NY";
-const ORGANIZER_PIN = "8417"; // PIN to access organizer mode
+
+// Day-round assignments (organizer can adjust)
+const DAY_ROUND_CONFIG = {
+  main: { 1: [1, 2], 2: [3, 4, 5, 6] },       // Day 1: R1+R2, Day 2: R16+QF+SF+F
+  consolation: { 1: [1, 2], 2: [3, 4, 5] },    // Day 1: R1+R2, Day 2: QF+SF+F
+};
+
+// Sponsor configuration (placeholder - update with real sponsors)
+const SPONSORS = [
+  { name: "Brooklyn Brewery", tagline: "Official Beer Sponsor", color: "#B8860B", icon: "🍺" },
+  { name: "Royal Palms", tagline: "Home of Brooklyn Shuffleboard", color: "#3A8E6E", icon: "🌴" },
+  { name: "Paulie Gee's", tagline: "Official Pizza Partner", color: "#E85D3A", icon: "🍕" },
+  { name: "Jameson", tagline: "Official Spirits Partner", color: "#2E7D32", icon: "🥃" },
+];
 
 // Embedded images (base64)
 const NHSA_LOGO = "data:image/jpeg;base64,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";
@@ -77,10 +90,7 @@ export default function BKNationalTournament() {
   const isMobile = useIsMobile();
   const [state, setState] = useState(createInitialState);
   const [view, setView] = useState("player");
-  const [organizerUnlocked, setOrganizerUnlocked] = useState(false);
-  const tapCountRef = useRef(0);
-  const tapTimerRef = useRef(null);
-  const [activeTab, setActiveTab] = useState("teams");
+  const [activeTab, setActiveTab] = useState("dashboard");
   const tournamentId = DEFAULT_TOURNAMENT_ID;
 
   const [teamForm, setTeamForm] = useState({
@@ -97,6 +107,14 @@ export default function BKNationalTournament() {
   const [myTeamId, setMyTeamIdRaw] = useState(""); // persists across view switches
   const [completionStatsView, setCompletionStatsView] = useState("main"); // "main" | "consolation" for completion banner
   const [announcements, setAnnouncements] = useState([]); // [{id, text, timestamp}]
+  const [dayFilter, setDayFilter] = useState(1); // 1, 2, or "all"
+  const [sponsorIdx, setSponsorIdx] = useState(0);
+
+  // Rotate sponsor banner
+  useEffect(() => {
+    const t = setInterval(() => setSponsorIdx(i => (i + 1) % SPONSORS.length), 4000);
+    return () => clearInterval(t);
+  }, []);
 
   // ── Persist myTeamId separately (player-side, lightweight) ──
   const myTeamIdLoaded = useRef(false);
@@ -422,7 +440,7 @@ export default function BKNationalTournament() {
     const numByes = state.teams.filter(t => t.isBye).length;
 
     setState(s => ({ ...s, phase: "playing", seed: slots.filter(x => x !== null), mainBracket: rounds, consolationBracket: consolationRounds, consolationFinalized: true }));
-    setActiveTab("bracket");
+    setActiveTab("dashboard");
     showNotif(`Bracket generated with ${numTeams} teams${numByes > 0 ? ` (${numByes} byes)` : ""}!`);
   }
 
@@ -896,6 +914,48 @@ export default function BKNationalTournament() {
     return all;
   }
 
+  // Get matches filtered by day
+  function getMatchesForDay(day) {
+    const all = getAllMatches();
+    if (day === "all") return all;
+    return all.filter(m => {
+      const bracketKey = m.bracket === "Main" ? "main" : "consolation";
+      const dayRounds = DAY_ROUND_CONFIG[bracketKey]?.[day] || [];
+      return dayRounds.includes(m.roundIdx + 1); // roundIdx is 0-based, config is 1-based
+    });
+  }
+
+  // Dashboard stats
+  function getDashboardStats(day) {
+    const matches = getMatchesForDay(day);
+    const completed = matches.filter(m => m.status === "completed");
+    const active = matches.filter(m => m.status === "on_court");
+    const waiting = matches.filter(m => m.status === "waiting");
+    const mainMatches = matches.filter(m => m.bracket === "Main");
+    const conMatches = matches.filter(m => m.bracket === "Consolation");
+    const mainCompleted = mainMatches.filter(m => m.status === "completed").length;
+    const conCompleted = conMatches.filter(m => m.status === "completed").length;
+
+    // Average match duration
+    const durations = completed
+      .filter(m => m.startedAt && m.completedAt)
+      .map(m => m.completedAt - m.startedAt);
+    const avgDuration = durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length / 60000) : 0;
+
+    // Estimated finish
+    const remaining = matches.length - completed.length;
+    const estMinsLeft = avgDuration > 0 && TOTAL_COURTS > 0 ? Math.ceil((remaining / TOTAL_COURTS) * avgDuration) : 0;
+    const estFinish = estMinsLeft > 0 ? new Date(Date.now() + estMinsLeft * 60000) : null;
+
+    return {
+      total: matches.length, completed: completed.length, active: active.length,
+      waiting: waiting.length, remaining,
+      mainTotal: mainMatches.length, mainCompleted,
+      conTotal: conMatches.length, conCompleted,
+      avgDuration, estFinish,
+    };
+  }
+
   // Score display: always show higher score first (convention)
   // (uses top-level scoreStr utility)
 
@@ -934,41 +994,18 @@ export default function BKNationalTournament() {
       <header style={S.header}>
         <div style={{ ...S.headerRow, flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "flex-start" }}>
           <div>
-            <h1 style={{ ...S.title, fontSize: isMobile ? 24 : 30, cursor: "default", WebkitUserSelect: "none", userSelect: "none" }}
-              onClick={() => {
-                if (organizerUnlocked) return;
-                tapCountRef.current += 1;
-                clearTimeout(tapTimerRef.current);
-                if (tapCountRef.current >= 5) {
-                  tapCountRef.current = 0;
-                  const enteredPin = prompt("Enter organizer PIN:");
-                  if (enteredPin === ORGANIZER_PIN) {
-                    setOrganizerUnlocked(true);
-                    setView("organizer");
-                    showNotif("Organizer mode unlocked! 🔓");
-                  } else if (enteredPin !== null) {
-                    showNotif("Incorrect PIN", "error");
-                  }
-                } else {
-                  tapTimerRef.current = setTimeout(() => { tapCountRef.current = 0; }, 2000);
-                }
-              }}
-            >{TOURNAMENT_NAME}</h1>
+            <h1 style={{ ...S.title, fontSize: isMobile ? 24 : 30 }}>{TOURNAMENT_NAME}</h1>
             <p style={S.subtitle}>{TOURNAMENT_SUBTITLE}</p>
             <p style={S.meta}>📅 {TOURNAMENT_DATE}</p>
             <p style={S.meta}>📍 {TOURNAMENT_VENUE}</p>
           </div>
           <div style={S.viewToggle}>
-            {organizerUnlocked ? (
-              <>
-                <button style={view === "organizer" ? S.viewBtnOn : S.viewBtnOff} onClick={() => setView("organizer")}>
-                  ⚙️ Organizer
-                </button>
-                <button style={view === "player" ? S.viewBtnOn : S.viewBtnOff} onClick={() => setView("player")}>
-                  👤 Player View
-                </button>
-              </>
-            ) : null}
+            <button style={view === "organizer" ? S.viewBtnOn : S.viewBtnOff} onClick={() => setView("organizer")}>
+              ⚙️ Organizer
+            </button>
+            <button style={view === "player" ? S.viewBtnOn : S.viewBtnOff} onClick={() => setView("player")}>
+              👤 Player View
+            </button>
           </div>
         </div>
       </header>
@@ -1014,9 +1051,10 @@ export default function BKNationalTournament() {
       {view === "organizer" && (
         <div style={{ ...S.tabBar, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           {[
-            { key: "teams", label: `Teams (${state.teams.length})` },
-            { key: "bracket", label: "Bracket" },
-            { key: "courts", label: "Courts" },
+            { key: "dashboard", label: "📊 Dashboard" },
+            { key: "courts", label: "⚡ Courts" },
+            { key: "bracket", label: "🏆 Bracket" },
+            { key: "teams", label: `👥 Teams (${state.teams.length})` },
             { key: "announce", label: `📢 Announce${announcements.length ? ` (${announcements.length})` : ""}` },
           ].map(tab => (
             <button key={tab.key} style={activeTab === tab.key ? S.tabOn : S.tabOff} onClick={() => setActiveTab(tab.key)}>
@@ -1130,6 +1168,162 @@ export default function BKNationalTournament() {
             </div>
           </div>
         )}
+
+        {/* ═══ DAY FILTER BAR ═══ */}
+        {view === "organizer" && (activeTab === "dashboard" || activeTab === "courts") && state.phase !== "setup" && (
+          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 0 8px", borderBottom: "1px solid #111", marginBottom: 16 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.1em" }}>Showing:</span>
+            <div style={{ display: "flex", gap: 3, background: "#111", borderRadius: 8, padding: 3 }}>
+              {[{ key: 1, label: "Day 1 · Sat" }, { key: 2, label: "Day 2 · Sun" }, { key: "all", label: "All" }].map(d => (
+                <button key={d.key} onClick={() => setDayFilter(d.key)} style={{
+                  padding: "6px 14px", fontSize: 11, fontWeight: dayFilter === d.key ? 700 : 400,
+                  color: dayFilter === d.key ? "#fff" : "#555",
+                  background: dayFilter === d.key ? "#1e1e1e" : "transparent",
+                  border: "none", borderRadius: 6, cursor: "pointer", whiteSpace: "nowrap",
+                }}>{d.label}</button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ═══ DASHBOARD TAB ═══ */}
+        {view === "organizer" && activeTab === "dashboard" && (() => {
+          if (state.phase === "setup") {
+            return <div style={S.card}><p style={S.empty}>Generate the bracket to see the dashboard.</p></div>;
+          }
+          const ds = getDashboardStats(dayFilter);
+          const allDs = getDashboardStats("all");
+          const allMatches = getMatchesForDay(dayFilter);
+          const liveMatches = allMatches.filter(m => m.status === "on_court").sort((a, b) => (a.startedAt || 0) - (b.startedAt || 0));
+          const recentlyCompleted = allMatches.filter(m => m.status === "completed" && m.completedAt).sort((a, b) => b.completedAt - a.completedAt).slice(0, 6);
+          const upNext = allMatches.filter(m => m.status === "waiting").slice(0, 6);
+          return (
+            <div>
+              {/* Stat cards */}
+              <div className="vt-stat-row" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 12, marginBottom: 20 }}>
+                <div style={{ background: "#0d0d0d", border: "1px solid #1a1a1a", borderRadius: 12, padding: "20px 20px 16px", borderTop: "3px solid #3A8E6E" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>{dayFilter === "all" ? "Total Completed" : `Day ${dayFilter} Completed`}</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: "#fff" }}>{ds.completed} / {ds.total}</div>
+                  <div style={{ fontSize: 11, color: "#3A8E6E", marginTop: 4 }}>{ds.total > 0 ? Math.round(ds.completed / ds.total * 100) : 0}% complete</div>
+                </div>
+                <div style={{ background: "#0d0d0d", border: "1px solid #1a1a1a", borderRadius: 12, padding: "20px 20px 16px", borderTop: "3px solid #D4A843" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Courts Active</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: "#fff" }}>{ds.active} / {TOTAL_COURTS}</div>
+                  <div style={{ fontSize: 11, color: "#D4A843", marginTop: 4 }}>{TOTAL_COURTS - ds.active} available</div>
+                </div>
+                <div style={{ background: "#0d0d0d", border: "1px solid #1a1a1a", borderRadius: 12, padding: "20px 20px 16px", borderTop: "3px solid #888" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Avg Match Time</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: "#fff" }}>{ds.avgDuration > 0 ? `${ds.avgDuration} min` : "—"}</div>
+                  <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>rolling average</div>
+                </div>
+                <div style={{ background: "#0d0d0d", border: "1px solid #1a1a1a", borderRadius: 12, padding: "20px 20px 16px", borderTop: `3px solid ${ds.remaining > 40 ? "#E85D3A" : "#3A8E6E"}` }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Est. Finish</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: "#fff" }}>{ds.estFinish ? ds.estFinish.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "—"}</div>
+                  <div style={{ fontSize: 11, color: ds.remaining > 40 ? "#E85D3A" : "#3A8E6E", marginTop: 4 }}>{ds.remaining} matches remaining</div>
+                </div>
+              </div>
+
+              {/* Bracket progress */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+                <DashboardBracketProgress title="🏆 Main Bracket" bracket={state.mainBracket}
+                  roundNames={["Round 1", "Round of 32", "Round of 16", "Quarterfinals", "Semifinals", "Final"]}
+                  dayFilter={dayFilter} bracketKey="main" accent="#3A8E6E" />
+                <DashboardBracketProgress title="🥈 Consolation" bracket={state.consolationBracket}
+                  roundNames={["Round 1", "Round of 16", "Quarterfinals", "Semifinals", "Final"]}
+                  dayFilter={dayFilter} bracketKey="consolation" accent="#D4A843" />
+              </div>
+
+              {/* Live on courts */}
+              {liveMatches.length > 0 && (
+                <div style={S.card}>
+                  <h3 style={{ ...S.cardTitle, fontSize: 14 }}>🔴 Live on Courts</h3>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {liveMatches.map(m => (
+                      <div key={m.id} style={{ padding: "10px 14px", background: "#0d0d0d", border: "1px solid #1a1a1a", borderLeft: `3px solid ${m.bracket === "Main" ? "#3A8E6E" : "#D4A843"}`, borderRadius: 8 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                          <span style={{ fontSize: 9, fontWeight: 700, color: m.bracket === "Main" ? "#3A8E6E" : "#D4A843", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                            {m.bracket} · {m.roundName}{m.court ? ` · Court ${m.court}` : ""}
+                          </span>
+                          {m.startedAt && <span style={{ fontSize: 10, color: "#D4A843" }}>⏱ {formatDuration(m.startedAt, Date.now())}</span>}
+                        </div>
+                        <div style={{ fontSize: 13, color: "#ccc" }}>{tLabel(m.team1Id)} <span style={{ color: "#333" }}>vs</span> {tLabel(m.team2Id)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Up next */}
+              {upNext.length > 0 && (
+                <div style={{ ...S.card, marginTop: 16 }}>
+                  <h3 style={{ ...S.cardTitle, fontSize: 14 }}>⏳ Up Next — Ready for Court</h3>
+                  <p style={{ fontSize: 11, color: "#444", margin: "0 0 12px" }}>Both teams set, waiting for an open court</p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {upNext.map(m => (
+                      <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#0d0d0d", border: "1px solid #1a1a1a", borderLeft: `3px solid ${m.bracket === "Main" ? "#3A8E6E" : "#D4A843"}`, borderRadius: 8 }}>
+                        <div style={{ flex: 1 }}>
+                          <span style={{ fontSize: 9, fontWeight: 700, color: m.bracket === "Main" ? "#3A8E6E" : "#D4A843", textTransform: "uppercase", letterSpacing: "0.08em" }}>{m.bracket} · {m.roundName}</span>
+                          <div style={{ fontSize: 13, color: "#bbb", marginTop: 2 }}>{tLabel(m.team1Id)} <span style={{ color: "#333" }}>vs</span> {tLabel(m.team2Id)}</div>
+                        </div>
+                        <select style={S.courtSelect} onChange={e => { if (e.target.value) assignCourt(m.bracket.toLowerCase() === "main" ? "main" : "consolation", m.id, parseInt(e.target.value)); }}>
+                          <option value="">Court...</option>
+                          {Array.from({ length: TOTAL_COURTS }, (_, i) => i + 1).map(c => <option key={c} value={c}>Ct {c}</option>)}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Recently completed */}
+              {recentlyCompleted.length > 0 && (
+                <div style={{ ...S.card, marginTop: 16 }}>
+                  <h3 style={{ ...S.cardTitle, fontSize: 14 }}>✅ Recently Completed</h3>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    {recentlyCompleted.map(m => (
+                      <div key={m.id} style={{ padding: "10px 14px", background: "#0b0d0b", border: "1px solid #141814", borderLeft: `3px solid ${m.bracket === "Main" ? "#3A8E6E" : "#D4A843"}`, borderRadius: 8 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontSize: 9, fontWeight: 700, color: m.bracket === "Main" ? "#3A8E6E" : "#D4A843", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                            {m.bracket} · {m.roundName}{m.court ? ` · Court ${m.court}` : ""}
+                          </span>
+                          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                            {m.startedAt && m.completedAt && <span style={{ fontSize: 10, color: "#555" }}>⏱ {formatDuration(m.startedAt, m.completedAt)}</span>}
+                            {m.scores && <span style={{ fontSize: 11, color: "#555", fontWeight: 600 }}>{scoreStr(m.scores)}</span>}
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 13, color: "#3A8E6E", fontWeight: 600, marginTop: 3 }}>✓ {tLabel(m.winner)}</div>
+                        <span style={{ fontSize: 11, color: "#444" }}>def. {tLabel(m.winner === m.team1Id ? m.team2Id : m.team1Id)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Day breakdown */}
+              <div style={{ ...S.card, marginTop: 16 }}>
+                <h3 style={{ ...S.cardTitle, fontSize: 14 }}>📅 Day Breakdown</h3>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  {[1, 2].map(day => {
+                    const dStats = getDashboardStats(day);
+                    const pct = dStats.total > 0 ? Math.round(dStats.completed / dStats.total * 100) : 0;
+                    const isViewing = dayFilter === day;
+                    return (
+                      <div key={day} style={{ background: isViewing ? "#0d0d0a" : "#0d0d0d", border: `1px solid ${isViewing ? "#D4A84340" : "#1a1a1a"}`, borderRadius: 10, padding: "16px 20px", position: "relative" }}>
+                        {isViewing && <div style={{ position: "absolute", top: 10, right: 14, fontSize: 9, fontWeight: 700, color: "#D4A843", textTransform: "uppercase", background: "#D4A84315", padding: "2px 8px", borderRadius: 4 }}>Viewing</div>}
+                        <h4 style={{ fontSize: 14, fontWeight: 700, color: "#fff", margin: "0 0 8px" }}>Day {day} — {day === 1 ? "Saturday" : "Sunday"}</h4>
+                        <div style={{ height: 6, background: "#1a1a1a", borderRadius: 3, overflow: "hidden", marginBottom: 8 }}>
+                          <div style={{ width: `${pct}%`, height: "100%", background: "linear-gradient(90deg, #3A8E6E, #D4A843)", borderRadius: 3 }} />
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>{dStats.completed} / {dStats.total} matches</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* ═══ TEAMS TAB ═══ */}
         {view === "organizer" && activeTab === "teams" && (
           <div>
@@ -1486,7 +1680,9 @@ export default function BKNationalTournament() {
             mainWinner={mainWinner} consolationWinner={consolationWinner} tournamentComplete={tournamentComplete}
             getTournamentStats={getTournamentStats} myTeamId={myTeamId} setMyTeamId={setMyTeamId}
             completionStatsView={completionStatsView} setCompletionStatsView={setCompletionStatsView} isMobile={isMobile}
-            announcements={announcements} />
+            announcements={announcements} sponsors={SPONSORS} sponsorIdx={sponsorIdx}
+            dayFilter={dayFilter} setDayFilter={setDayFilter} getDashboardStats={getDashboardStats}
+            getAllMatches={getAllMatches} getMatchesForDay={getMatchesForDay} />
         )}
       </main>
 
@@ -1505,6 +1701,77 @@ export default function BKNationalTournament() {
 // ═════════════════════════════════════════════════════════════════
 // BRACKET TREE VIEW
 // ═════════════════════════════════════════════════════════════════
+// ── Dashboard Bracket Progress ──
+function DashboardBracketProgress({ title, bracket, roundNames, dayFilter, bracketKey, accent }) {
+  if (!bracket || bracket.length === 0) return null;
+  const filtered = bracket.map((r, i) => {
+    const roundNum = i + 1;
+    const dayRounds = DAY_ROUND_CONFIG[bracketKey]?.[dayFilter] || [];
+    const show = dayFilter === "all" || dayRounds.includes(roundNum);
+    if (!show) return null;
+    const completed = r.matches.filter(m => m.status === "completed").length;
+    const active = r.matches.filter(m => m.status === "on_court").length;
+    return { name: roundNames[i] || `R${roundNum}`, total: r.matches.length, completed, active };
+  }).filter(Boolean);
+  const totalComp = filtered.reduce((s, r) => s + r.completed, 0);
+  const totalAll = filtered.reduce((s, r) => s + r.total, 0);
+  const pct = totalAll > 0 ? Math.round(totalComp / totalAll * 100) : 0;
+  return (
+    <div style={{ background: "#0d0d0d", border: "1px solid #1a1a1a", borderRadius: 12, padding: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: "#fff", margin: 0 }}>{title}</h3>
+        <span style={{ fontSize: 12, fontWeight: 700, color: accent }}>{totalComp}/{totalAll} · {pct}%</span>
+      </div>
+      <div style={{ height: 6, background: "#1a1a1a", borderRadius: 3, overflow: "hidden", marginBottom: 16 }}>
+        <div style={{ width: `${pct}%`, height: "100%", background: accent, borderRadius: 3 }} />
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {filtered.map((r, i) => {
+          const rPct = r.total > 0 ? (r.completed / r.total) * 100 : 0;
+          const isDone = r.completed === r.total;
+          const isAct = r.active > 0;
+          return (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 11, color: isDone ? accent : isAct ? "#D4A843" : "#444", fontWeight: isDone || isAct ? 600 : 400, width: 110, flexShrink: 0 }}>
+                {isDone ? "✓ " : isAct ? "● " : ""}{r.name}
+              </span>
+              <div style={{ flex: 1, height: 4, background: "#1a1a1a", borderRadius: 2, overflow: "hidden" }}>
+                <div style={{ width: `${rPct}%`, height: "100%", background: isDone ? accent : isAct ? "#D4A843" : "#333", borderRadius: 2 }} />
+              </div>
+              <span style={{ fontSize: 10, color: "#555", width: 40, textAlign: "right" }}>{r.completed}/{r.total}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Sponsor Banner ──
+function SponsorBanner({ sponsors, activeIdx }) {
+  if (!sponsors || sponsors.length === 0) return null;
+  const sp = sponsors[activeIdx % sponsors.length];
+  return (
+    <div style={{
+      margin: "16px 0", padding: "14px 20px",
+      background: `linear-gradient(135deg, ${sp.color}10, ${sp.color}05)`,
+      border: `1px solid ${sp.color}20`, borderRadius: 10,
+      display: "flex", alignItems: "center", gap: 14, minHeight: 52, transition: "all 0.6s ease",
+    }}>
+      <div style={{ width: 36, height: 36, borderRadius: 8, background: `${sp.color}15`, border: `1px solid ${sp.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{sp.icon}</div>
+      <div style={{ flex: 1 }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: sp.color }}>{sp.name}</span>
+        <span style={{ fontSize: 11, color: "#555", marginLeft: 8 }}>{sp.tagline}</span>
+      </div>
+      <div style={{ display: "flex", gap: 5 }}>
+        {sponsors.map((_, i) => (
+          <div key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: i === activeIdx % sponsors.length ? sp.color : "#333" }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function BracketTree({ rounds, tLabel, onScore, onAssignCourt, editable, accentColor }) {
   // Name rounds based on count: 6 rounds = 64-team, 5 = 32-team, etc.
   function getRoundName(rIdx, totalRounds) {
@@ -2004,8 +2271,8 @@ function CourtsView({ state, tLabel, getAllMatches, assignCourt }) {
 // ═════════════════════════════════════════════════════════════════
 // PLAYER VIEW
 // ═════════════════════════════════════════════════════════════════
-function PlayerView({ state, tLabel, tFull, teamMap, mainWinner, consolationWinner, tournamentComplete, getTournamentStats, myTeamId, setMyTeamId, completionStatsView, setCompletionStatsView, isMobile, announcements }) {
-  const [playerTab, setPlayerTab] = useState("live"); // "live" | "bracket" | "rules"
+function PlayerView({ state, tLabel, tFull, teamMap, mainWinner, consolationWinner, tournamentComplete, getTournamentStats, myTeamId, setMyTeamId, completionStatsView, setCompletionStatsView, isMobile, announcements, sponsors, sponsorIdx, dayFilter, setDayFilter, getDashboardStats, getAllMatches, getMatchesForDay }) {
+  const [playerTab, setPlayerTab] = useState("live"); // "live" | "bracket" | "rules" | "sponsors"
   const [playerBracketTab, setPlayerBracketTab] = useState("main"); // "main" | "consolation"
   const [dismissedAnnouncements, setDismissedAnnouncements] = useState(new Set());
 
@@ -2381,10 +2648,28 @@ function PlayerView({ state, tLabel, tFull, teamMap, mainWinner, consolationWinn
 
       {/* Player sub-tabs — only show after draw is generated */}
       {state.phase !== "setup" && <>
+
+      {/* Sponsor Banner */}
+      <SponsorBanner sponsors={sponsors} activeIdx={sponsorIdx} />
+
+      {/* Day filter */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 0 8px", borderBottom: "1px solid #111", marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 3, background: "#111", borderRadius: 8, padding: 3 }}>
+          {[{ key: 1, label: "Day 1 · Sat" }, { key: 2, label: "Day 2 · Sun" }, { key: "all", label: "All" }].map(d => (
+            <button key={d.key} onClick={() => setDayFilter(d.key)} style={{
+              padding: "6px 14px", fontSize: 11, fontWeight: dayFilter === d.key ? 700 : 400,
+              color: dayFilter === d.key ? "#fff" : "#555",
+              background: dayFilter === d.key ? "#1e1e1e" : "transparent",
+              border: "none", borderRadius: 6, cursor: "pointer", whiteSpace: "nowrap",
+            }}>{d.label}</button>
+          ))}
+        </div>
+      </div>
       <div style={{ display: "flex", gap: 3, marginBottom: 16, background: "#111", borderRadius: 8, padding: 3, width: isMobile ? "100%" : "fit-content", overflowX: "auto" }}>
         <button style={{ ...ptabStyle(playerTab === "live"), flex: isMobile ? 1 : undefined, whiteSpace: "nowrap", minHeight: 44 }} onClick={() => setPlayerTab("live")}>{isMobile ? "📡 Live" : "📡 What's Happening"}</button>
         <button style={{ ...ptabStyle(playerTab === "bracket"), flex: isMobile ? 1 : undefined, whiteSpace: "nowrap", minHeight: 44 }} onClick={() => setPlayerTab("bracket")}>🏆 Bracket</button>
         <button style={{ ...ptabStyle(playerTab === "rules"), flex: isMobile ? 1 : undefined, whiteSpace: "nowrap", minHeight: 44 }} onClick={() => setPlayerTab("rules")}>📖 Rules</button>
+        <button style={{ ...ptabStyle(playerTab === "sponsors"), flex: isMobile ? 1 : undefined, whiteSpace: "nowrap", minHeight: 44 }} onClick={() => setPlayerTab("sponsors")}>🤝 Sponsors</button>
       </div>
 
       {/* ─── TAB: What's Happening ─── */}
@@ -2495,6 +2780,26 @@ function PlayerView({ state, tLabel, tFull, teamMap, mainWinner, consolationWinn
         <div style={S.card}>
           <h2 style={S.cardTitle}>📖 Tournament Rules</h2>
           <RulesContent />
+        </div>
+      )}
+
+      {/* ─── TAB: Sponsors ─── */}
+      {playerTab === "sponsors" && (
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#fff", margin: "0 0 4px" }}>Tournament Sponsors</h2>
+          <p style={{ fontSize: 12, color: "#555", margin: "0 0 4px" }}>Thank you to our sponsors for making the Brooklyn National possible</p>
+          <p style={{ fontSize: 10, color: "#D4A843", margin: "0 0 20px", fontStyle: "italic" }}>⚠️ Sample placeholders — final sponsors TBD</p>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
+            {(sponsors || []).map((sp, i) => (
+              <div key={i} style={{ background: "#0d0d0d", border: `1px solid ${sp.color}30`, borderRadius: 12, padding: "28px 24px", textAlign: "center" }}>
+                <div style={{ width: 64, height: 64, borderRadius: 12, background: `${sp.color}15`, border: `2px solid ${sp.color}30`, margin: "0 auto 16px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>
+                  {sp.icon}
+                </div>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: "#fff", margin: "0 0 4px" }}>{sp.name}</h3>
+                <p style={{ fontSize: 12, color: sp.color, margin: 0 }}>{sp.tagline}</p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
       </>}
