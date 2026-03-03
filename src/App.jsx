@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
 // App version
-const APP_VERSION = "3.1.6";
+const APP_VERSION = "3.1.7";
 
 // Mobile detection hook
 function useIsMobile(breakpoint = 600) {
@@ -189,13 +189,6 @@ export default function BKNationalTournament() {
       meta.content = "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no";
       document.head.appendChild(meta);
     }
-    // Set favicon — remove ALL existing first, then inject ours
-    document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]').forEach(el => el.remove());
-    const favLink = document.createElement("link");
-    favLink.rel = "icon";
-    favLink.type = "image/jpeg";
-    favLink.href = "data:image/jpeg;base64,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";
-    document.head.appendChild(favLink);
     document.title = "Brooklyn National 2026";
   }, []);
 
@@ -1715,7 +1708,8 @@ function BracketTree({ rounds, tLabel, onScore, onAssignCourt, editable, accentC
           const mh = 72, gap = 4;
           const baseOffset = Math.pow(2, rIdx) * (mh + gap) / 2 - mh / 2;
           const spacing = Math.pow(2, rIdx) * (mh + gap);
-          const colWidth = Math.min(220, Math.max(160, Math.floor(1000 / rounds.length)));
+          const baseWidth = Math.min(220, Math.max(160, Math.floor(1000 / rounds.length)));
+          const colWidth = Math.round(baseWidth * (1 + (rIdx / Math.max(1, rounds.length - 1)) * 0.5));
 
           return (
             <div key={rIdx} style={{ flex: `0 0 ${colWidth}px` }}>
@@ -2147,9 +2141,24 @@ function PlayerView({ state, tLabel, tFull, teamMap, mainWinner, consolationWinn
     return m;
   }, [state.mainBracket, state.consolationBracket]);
 
-  const liveMatches = allMatches.filter(m => m.status === "on_court");
-  const waitingMatches = allMatches.filter(m => m.status === "waiting");
-  const completedMatches = allMatches.filter(m => m.status === "completed");
+  const liveMatches = allMatches.filter(m => {
+    if (dayFilter === "all") return m.status === "on_court";
+    const bk = m.bracket === "Main" ? "main" : "consolation";
+    const dayRounds = DAY_ROUND_CONFIG[bk]?.[dayFilter] || [];
+    return m.status === "on_court" && dayRounds.includes(m.roundIdx + 1);
+  });
+  const waitingMatches = allMatches.filter(m => {
+    if (dayFilter === "all") return m.status === "waiting";
+    const bk = m.bracket === "Main" ? "main" : "consolation";
+    const dayRounds = DAY_ROUND_CONFIG[bk]?.[dayFilter] || [];
+    return m.status === "waiting" && dayRounds.includes(m.roundIdx + 1);
+  });
+  const completedMatches = allMatches.filter(m => {
+    if (dayFilter === "all") return m.status === "completed";
+    const bk = m.bracket === "Main" ? "main" : "consolation";
+    const dayRounds = DAY_ROUND_CONFIG[bk]?.[dayFilter] || [];
+    return m.status === "completed" && dayRounds.includes(m.roundIdx + 1);
+  });
   const myMatches = myTeamId ? allMatches.filter(m => m.team1Id === myTeamId || m.team2Id === myTeamId) : [];
   const isMyTeam = (match) => myTeamId && (match.team1Id === myTeamId || match.team2Id === myTeamId);
 
