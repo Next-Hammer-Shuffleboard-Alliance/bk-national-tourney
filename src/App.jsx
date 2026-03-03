@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
 // App version
-const APP_VERSION = "3.1.3";
+const APP_VERSION = "3.1.4";
 
 // Mobile detection hook
 function useIsMobile(breakpoint = 600) {
@@ -1116,27 +1116,6 @@ export default function BKNationalTournament() {
                       <div style={S.statNum}>{stats.completed}</div>
                       <div style={S.statLabel}>Matches Played</div>
                     </div>
-                    {stats.highScoreMatch && (
-                      <div style={S.statBox}>
-                        <div style={S.statNum}>{stats.highScore}</div>
-                        <div style={S.statLabel}>High Score</div>
-                        <div style={S.statDetail}>{tLabel(stats.highScoreMatch.winner)}</div>
-                      </div>
-                    )}
-                    {stats.closestMatch && (
-                      <div style={S.statBox}>
-                        <div style={S.statNum}>{stats.closestMargin}</div>
-                        <div style={S.statLabel}>Closest Margin</div>
-                        <div style={S.statDetail}>{tLabel(stats.closestMatch.winner)} · {scoreStr(stats.closestMatch.scores)}</div>
-                      </div>
-                    )}
-                    {stats.blowoutMatch && (
-                      <div style={S.statBox}>
-                        <div style={S.statNum}>{stats.biggestBlowout}</div>
-                        <div style={S.statLabel}>Biggest Blowout</div>
-                        <div style={S.statDetail}>{tLabel(stats.blowoutMatch.winner)} · {scoreStr(stats.blowoutMatch.scores)}</div>
-                      </div>
-                    )}
                     {stats.shortestMatch && (
                       <div style={S.statBox}>
                         <div style={S.statNum}>{formatDuration(stats.shortestMatch.startedAt, stats.shortestMatch.completedAt)}</div>
@@ -1502,6 +1481,8 @@ export default function BKNationalTournament() {
                     );
                   })()}
                   {organizerBracketTab === "consolation" && consolationBracketGenerated && (() => {
+                    const hasTeams = state.consolationBracket.some(r => r.matches.some(m => m.team1Id && m.team2Id));
+                    if (!hasTeams) return <span style={{ fontSize: 11, color: "#555" }}>Awaiting Main R1 results…</span>;
                     const nextRound = getNextSimRound("consolation");
                     return nextRound ? (
                       <button style={{ ...S.btnSm, fontSize: 11, color: "#D4A843", borderColor: "#D4A84330" }}
@@ -1524,9 +1505,7 @@ export default function BKNationalTournament() {
                 <h2 style={{ ...S.cardTitle, color: "#3A8E6E" }}>🏆 Main Bracket</h2>
                 <p style={S.hint}>64-team single elimination · Winners advance through each round</p>
                 <BracketTree
-                  rounds={state.mainBracket} tLabel={tLabel} editable={true}
-                  onScore={(rIdx, mId, a, b) => enterBracketScoreWithCheck("main", rIdx, mId, a, b)}
-                  onAssignCourt={(rIdx, mId, c) => assignCourt("main", rIdx, mId, c)}
+                  rounds={state.mainBracket} tLabel={tLabel} editable={false}
                   accentColor="#3A8E6E" />
                 {mainWinner && (
                   <div style={{ textAlign: "center", marginTop: 16, padding: "16px 20px", background: "#0a120a", border: "1px solid #3A8E6E30", borderRadius: 10 }}>
@@ -1544,9 +1523,7 @@ export default function BKNationalTournament() {
                   <div style={{ ...S.card, borderLeft: "3px solid #D4A843" }}>
                     <h2 style={{ ...S.cardTitle, color: "#D4A843" }}>🥈 Consolation Bracket</h2>
                     <p style={S.hint}>First Match Losers — Single Elimination</p>
-                    <BracketTree rounds={state.consolationBracket} tLabel={tLabel} editable={true}
-                      onScore={(rIdx, mId, a, b) => enterBracketScoreWithCheck("consolation", rIdx, mId, a, b)}
-                      onAssignCourt={(rIdx, mId, c) => assignCourt("consolation", rIdx, mId, c)}
+                    <BracketTree rounds={state.consolationBracket} tLabel={tLabel} editable={false}
                       accentColor="#D4A843" />
                     {consolationWinner && (
                       <div style={{ textAlign: "center", marginTop: 16, padding: "16px 20px", background: "#12100a", border: "1px solid #D4A84330", borderRadius: 10 }}>
@@ -2329,27 +2306,6 @@ function PlayerView({ state, tLabel, tFull, teamMap, mainWinner, consolationWinn
                     <div style={S.statNum}>{stats.completed}</div>
                     <div style={S.statLabel}>Matches Played</div>
                   </div>
-                  {stats.highScoreMatch && (
-                    <div style={S.statBox}>
-                      <div style={S.statNum}>{stats.highScore}</div>
-                      <div style={S.statLabel}>High Score</div>
-                      <div style={S.statDetail}>{tLabel(stats.highScoreMatch.winner)}</div>
-                    </div>
-                  )}
-                  {stats.closestMatch && (
-                    <div style={S.statBox}>
-                      <div style={S.statNum}>{stats.closestMargin}</div>
-                      <div style={S.statLabel}>Closest Margin</div>
-                      <div style={S.statDetail}>{tLabel(stats.closestMatch.winner)} · {scoreStr(stats.closestMatch.scores)}</div>
-                    </div>
-                  )}
-                  {stats.blowoutMatch && (
-                    <div style={S.statBox}>
-                      <div style={S.statNum}>{stats.biggestBlowout}</div>
-                      <div style={S.statLabel}>Biggest Blowout</div>
-                      <div style={S.statDetail}>{tLabel(stats.blowoutMatch.winner)} · {scoreStr(stats.blowoutMatch.scores)}</div>
-                    </div>
-                  )}
                   {stats.shortestMatch && (
                     <div style={S.statBox}>
                       <div style={S.statNum}>{formatDuration(stats.shortestMatch.startedAt, stats.shortestMatch.completedAt)}</div>
