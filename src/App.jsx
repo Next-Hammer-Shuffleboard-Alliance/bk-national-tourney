@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
 // App version
-const APP_VERSION = "3.1.8";
+const APP_VERSION = "3.1.9";
 
 // Mobile detection hook
 function useIsMobile(breakpoint = 600) {
@@ -455,6 +455,18 @@ export default function BKNationalTournament() {
       message: "Re-seed all teams? This will regenerate the bracket and lose entered scores.",
       onConfirm: () => { seedTeams(); setConfirmDialog(null); }
     });
+  }
+
+  function loadDemoTeams() {
+    const fn = ["Alex","Blake","Casey","Drew","Eden","Flynn","Gray","Harper","Indigo","Jules","Kit","Lane","Morgan","Noel","Oak","Parker","Quinn","Riley","Sage","Taylor","Uri","Val","Wren","Xen","York","Zane","Ari","Bay","Cruz","Dale","Elm","Faye","Ash","Bram","Cleo","Dane","Esme","Finn","Gale","Hale","Iris","Jade","Kira","Lark","Milo","Nico","Opal","Pax","Remi","Skye","Tara","Uma","Vera","Wade","Xyla","Yara","Zora","Beau","Cass","Dex","Elio","Fern","Gia","Hugh","Axel","Bree","Colt","Dawn","Ezra","Fawn","Glen","Hope","Ivan","June","Knox","Luna","Mars","Nova","Owen","Peri","Rafe","Shay","Theo","Vail","Wynn","Zeke","Alma","Beck","Cora","Dell","Enid","Ford","Gene","Hugo","Isla","Joel","Kade","Leif","Mara","Neil","Orin","Penn","Reed","Suki","Troy","Vida","West","Zara","Blye","Chip","Dove","Elan","Flor","Greer","Haze","Ivy","Joss","Kael","Lux","Myra","Nero","Orla","Petra","Rue","Sol","Ty","Ursa","Bex"];
+    const ln = ["Adams","Brooks","Chen","Davis","Evans","Foster","Garcia","Hayes","Ito","Jones","Kim","Lee","Miller","Nash","Ortiz","Park","Qin","Reyes","Shah","Torres","Ueda","Vega","Wang","Xu","Yang","Zhang","Bell","Cole","Diaz","Epp","Fry","Gill","Hart","Irwin","Jain","Kerr","Long","Moss","Ngo","Odom","Pike","Roth","Sato","Tran","Ueno","Voss","Webb","Xie","Yoon","Zhu","Baek","Clay","Dunn","Egan","Fox","Gold","Hood","Ives","Joy","Kang","Lowe","Mori","Nye","Rao","Bard","Cho","Delk","Fisk","Goff","Holt","Judd","Kline","Lam","Moon","Nagel","Oaks","Pham","Rusk","Stein","Thao","Vale","Ware","Yeo","Zinn","Bloom","Crane","Dyer","Ernst","Flores","Grant","Hess","Inman","Joyce","Kemp","Laird","Marsh","Noble","Pace","Quist","Rios","Scott","Thorne","Unger","Vance","Wolfe","Yeung","Zabel","Black","Cross","Drake","Elder","Frost","Grove","Hyde","Jett","Kent","Locke","Mohr","Neff","Oakes","Pratt","Quirk","Rush","Stark","Trask","Usher","Voss","Wray"];
+    const sf = shuffleArray(fn), sl = shuffleArray(ln);
+    const teams = [];
+    for (let i = 0; i < 128; i += 2) {
+      const pos = Math.floor(i / 2) + 1;
+      teams.push({ id: generateId(), player1First: sf[i], player1Last: sl[i], player2First: sf[i + 1], player2Last: sl[i + 1], bracketPosition: pos });
+    }
+    setState(s => ({ ...s, teams }));
   }
 
   function fullReset() {
@@ -1152,17 +1164,28 @@ export default function BKNationalTournament() {
 
         {/* ═══ DASHBOARD TAB ═══ */}
         {view === "organizer" && activeTab === "dashboard" && (() => {
-          if (state.phase === "setup") {
-            return <div style={S.card}><p style={S.empty}>Generate the bracket to see the dashboard.</p></div>;
-          }
+          const showQuickStart = state.phase === "setup" || !state.mainBracket.some(r => r.matches.some(m => m.status === "completed"));
+          return (
+            <div>
+              {showQuickStart && (
+                <QuickStartCard state={state} onTabSwitch={setActiveTab}
+                  onLoadDemo={() => {
+                    loadDemoTeams();
+                    showNotif("64 demo teams loaded!");
+                  }}
+                  onSimulate={(type) => simulateRound(type)}
+                  getNextSimRound={getNextSimRound}
+                  consolationBracketGenerated={consolationBracketGenerated}
+                />
+              )}
+              {state.phase === "setup" ? null : (() => {
           const ds = getDashboardStats(dayFilter);
           const allDs = getDashboardStats("all");
           const allMatches = getMatchesForDay(dayFilter);
           const liveMatches = allMatches.filter(m => m.status === "on_court").sort((a, b) => (a.startedAt || 0) - (b.startedAt || 0));
           const recentlyCompleted = allMatches.filter(m => m.status === "completed" && m.completedAt).sort((a, b) => b.completedAt - a.completedAt).slice(0, 6);
           const upNext = allMatches.filter(m => m.status === "waiting").slice(0, 6);
-          return (
-            <div>
+          return (<>
               {/* Stat cards */}
               <div className="vt-stat-row" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 12, marginBottom: 20 }}>
                 <div style={{ background: "#0d0d0d", border: "1px solid #1a1a1a", borderRadius: 12, padding: "20px 20px 16px", borderTop: "3px solid #3A8E6E" }}>
@@ -1263,6 +1286,8 @@ export default function BKNationalTournament() {
                 </div>
               )}
 
+            </>);
+            })()}
             </div>
           );
         })()}
@@ -1425,15 +1450,7 @@ export default function BKNationalTournament() {
             {state.teams.length === 0 && (
               <div style={{ textAlign: "center", marginTop: 16 }}>
                 <button style={S.btnSec} onClick={() => {
-                  const fn = ["Alex","Blake","Casey","Drew","Eden","Flynn","Gray","Harper","Indigo","Jules","Kit","Lane","Morgan","Noel","Oak","Parker","Quinn","Riley","Sage","Taylor","Uri","Val","Wren","Xen","York","Zane","Ari","Bay","Cruz","Dale","Elm","Faye","Ash","Bram","Cleo","Dane","Esme","Finn","Gale","Hale","Iris","Jade","Kira","Lark","Milo","Nico","Opal","Pax","Remi","Skye","Tara","Uma","Vera","Wade","Xyla","Yara","Zora","Beau","Cass","Dex","Elio","Fern","Gia","Hugh","Axel","Bree","Colt","Dawn","Ezra","Fawn","Glen","Hope","Ivan","June","Knox","Luna","Mars","Nova","Owen","Peri","Rafe","Shay","Theo","Vail","Wynn","Zeke","Alma","Beck","Cora","Dell","Enid","Ford","Gene","Hugo","Isla","Joel","Kade","Leif","Mara","Neil","Orin","Penn","Reed","Suki","Troy","Vida","West","Zara","Blye","Chip","Dove","Elan","Flor","Greer","Haze","Ivy","Joss","Kael","Lux","Myra","Nero","Orla","Petra","Rue","Sol","Ty","Ursa","Bex"];
-                  const ln = ["Adams","Brooks","Chen","Davis","Evans","Foster","Garcia","Hayes","Ito","Jones","Kim","Lee","Miller","Nash","Ortiz","Park","Qin","Reyes","Shah","Torres","Ueda","Vega","Wang","Xu","Yang","Zhang","Bell","Cole","Diaz","Epp","Fry","Gill","Hart","Irwin","Jain","Kerr","Long","Moss","Ngo","Odom","Pike","Roth","Sato","Tran","Ueno","Voss","Webb","Xie","Yoon","Zhu","Baek","Clay","Dunn","Egan","Fox","Gold","Hood","Ives","Joy","Kang","Lowe","Mori","Nye","Rao","Bard","Cho","Delk","Fisk","Goff","Holt","Judd","Kline","Lam","Moon","Nagel","Oaks","Pham","Rusk","Stein","Thao","Vale","Ware","Yeo","Zinn","Bloom","Crane","Dyer","Ernst","Flores","Grant","Hess","Inman","Joyce","Kemp","Laird","Marsh","Noble","Pace","Quist","Rios","Scott","Thorne","Unger","Vance","Wolfe","Yeung","Zabel","Black","Cross","Drake","Elder","Frost","Grove","Hyde","Jett","Kent","Locke","Mohr","Neff","Oakes","Pratt","Quirk","Rush","Stark","Trask","Usher","Voss","Wray"];
-                  const sf = shuffleArray(fn), sl = shuffleArray(ln);
-                  const teams = [];
-                  for (let i = 0; i < 128; i += 2) {
-                    const pos = Math.floor(i / 2) + 1;
-                    teams.push({ id: generateId(), player1First: sf[i], player1Last: sl[i], player2First: sf[i + 1], player2Last: sl[i + 1], bracketPosition: pos });
-                  }
-                  setState(s => ({ ...s, teams }));
+                  loadDemoTeams();
                   showNotif("64 demo teams loaded at positions 1-64!");
                 }}>Load 64 Demo Teams (for testing)</button>
               </div>
@@ -1595,6 +1612,119 @@ export default function BKNationalTournament() {
           <span style={{ fontSize: 11, color: "#555", fontWeight: 600 }}>Powered by Next Hammer SA</span>
         </div>
       </footer>
+    </div>
+  );
+}
+
+
+// ═════════════════════════════════════════════════════════════════
+// QUICK START CARD
+// ═════════════════════════════════════════════════════════════════
+function QuickStartCard({ state, onTabSwitch, onLoadDemo, onSimulate, getNextSimRound, consolationBracketGenerated }) {
+  const teamCount = state.teams.length;
+  const bracketGenerated = state.mainBracket.length > 0;
+  const allMatches = [];
+  state.mainBracket.forEach(r => r.matches.forEach(m => { if (m.team1Id || m.team2Id) allMatches.push(m); }));
+  state.consolationBracket.forEach(r => r.matches.forEach(m => { if (m.team1Id || m.team2Id) allMatches.push(m); }));
+  const activeCount = allMatches.filter(m => m.status === "on_court").length;
+  const completedCount = allMatches.filter(m => m.status === "completed").length;
+
+  const steps = [
+    { num: 1, label: "Add Teams", desc: "Enter 64 teams or load demo data to test", icon: "\u{1F465}", tab: "teams", done: teamCount >= 16 },
+    { num: 2, label: "Generate Bracket", desc: "Draw the 64-team main bracket", icon: "\u{1F3C6}", tab: "bracket", done: bracketGenerated },
+    { num: 3, label: "Assign Courts", desc: "Put matches on courts to begin play", icon: "\u{1F4CD}", tab: "courts", done: activeCount > 0 || completedCount > 0 },
+    { num: 4, label: "Enter Scores", desc: "Record results as matches finish", icon: "\u{1F4DD}", tab: "courts", done: completedCount > 0 },
+  ];
+  const currentStep = steps.find(s => !s.done)?.num || 5;
+  if (steps.every(s => s.done)) return null;
+
+  return (
+    <div style={{
+      background: "linear-gradient(135deg, #0f1a0f 0%, #0d0d0d 50%, #1a150a 100%)",
+      border: "1px solid #1e2e1e", borderRadius: 14, padding: "24px 28px", marginBottom: 20,
+      position: "relative", overflow: "hidden",
+    }}>
+      <div style={{ position: "absolute", top: -40, right: -40, width: 120, height: 120, background: "radial-gradient(circle, #D4A84315 0%, transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: "#fff", margin: 0, letterSpacing: "-0.02em" }}>Quick Start</h2>
+          <p style={{ fontSize: 12, color: "#666", margin: "4px 0 0" }}>Follow these steps to run your tournament</p>
+        </div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#D4A843", background: "#D4A84315", padding: "4px 10px", borderRadius: 20, letterSpacing: "0.05em" }}>
+          STEP {currentStep} OF 4
+        </div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {steps.map(step => {
+          const isCurrent = step.num === currentStep;
+          const isPast = step.done;
+          const isFuture = !step.done && !isCurrent;
+          return (
+            <div key={step.num} onClick={() => !isFuture && onTabSwitch(step.tab)}
+              style={{
+                display: "flex", alignItems: "center", gap: 14, padding: "12px 16px",
+                background: isCurrent ? "#151f15" : isPast ? "#0c0c0c" : "transparent",
+                border: `1px solid ${isCurrent ? "#3A8E6E40" : isPast ? "#1a1a1a" : "#111"}`,
+                borderRadius: 10, cursor: isFuture ? "default" : "pointer",
+                opacity: isFuture ? 0.35 : 1, transition: "all 0.2s ease",
+              }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: isPast ? 14 : 13, fontWeight: 700,
+                background: isPast ? "#3A8E6E20" : isCurrent ? "#1a2a1a" : "#111",
+                color: isPast ? "#3A8E6E" : isCurrent ? "#D4A843" : "#333",
+                border: `1.5px solid ${isPast ? "#3A8E6E40" : isCurrent ? "#D4A84340" : "#1a1a1a"}`,
+                flexShrink: 0,
+              }}>
+                {isPast ? "\u2713" : step.num}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{
+                  fontSize: 14, fontWeight: 700,
+                  color: isPast ? "#555" : isCurrent ? "#fff" : "#333",
+                  textDecoration: isPast ? "line-through" : "none", textDecorationColor: "#333",
+                }}>
+                  {step.icon} {step.label}
+                </div>
+                {isCurrent && <div style={{ fontSize: 11, color: "#777", marginTop: 2 }}>{step.desc}</div>}
+              </div>
+              {isCurrent && <div style={{ fontSize: 11, color: "#3A8E6E", fontWeight: 700 }}>Go \u2192</div>}
+            </div>
+          );
+        })}
+      </div>
+      {/* Demo + Simulate buttons */}
+      {(currentStep === 1 || (currentStep >= 2 && bracketGenerated)) && (
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #1a1a1a", display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
+          {teamCount === 0 && (
+            <button onClick={onLoadDemo} style={{
+              padding: "10px 20px", fontSize: 13, fontWeight: 700, color: "#D4A843", background: "#D4A84312",
+              border: "1px solid #D4A84330", borderRadius: 8, cursor: "pointer",
+            }}>{"\u26A1"} Load Demo Tournament</button>
+          )}
+          {bracketGenerated && (() => {
+            const mainNext = getNextSimRound("main");
+            const conNext = consolationBracketGenerated ? getNextSimRound("consolation") : null;
+            return (
+              <>
+                {mainNext && <button onClick={() => onSimulate("main")} style={{
+                  padding: "10px 20px", fontSize: 13, fontWeight: 700, color: "#D4A843", background: "#D4A84312",
+                  border: "1px solid #D4A84330", borderRadius: 8, cursor: "pointer",
+                }}>{"\u26A1"} Sim Main {mainNext}</button>}
+                {conNext && <button onClick={() => onSimulate("consolation")} style={{
+                  padding: "10px 20px", fontSize: 13, fontWeight: 700, color: "#D4A843", background: "#D4A84312",
+                  border: "1px solid #D4A84330", borderRadius: 8, cursor: "pointer",
+                }}>{"\u26A1"} Sim Consolation {conNext}</button>}
+              </>
+            );
+          })()}
+        </div>
+      )}
+      {teamCount === 0 && (
+        <p style={{ fontSize: 11, color: "#444", marginTop: 8, textAlign: "center" }}>
+          Loads 64 demo teams with simulated results — great for testing
+        </p>
+      )}
     </div>
   );
 }
