@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
 // App version
-const APP_VERSION = "3.1.7";
+const APP_VERSION = "3.1.8";
 
 // Mobile detection hook
 function useIsMobile(breakpoint = 600) {
@@ -26,7 +26,7 @@ const TOURNAMENT_VENUE = "Royal Palms Shuffleboard Club, Brooklyn, NY";
 // Day-round assignments (organizer can adjust)
 const DAY_ROUND_CONFIG = {
   main: { 1: [1, 2], 2: [3, 4, 5, 6] },       // Day 1: R1+R2, Day 2: R16+QF+SF+F
-  consolation: { 1: [1, 2], 2: [3, 4, 5] },    // Day 1: R1+R2, Day 2: QF+SF+F
+  consolation: { 1: [1], 2: [2, 3, 4, 5] },    // Day 1: R1+R2, Day 2: QF+SF+F
 };
 
 // Sponsor configuration (placeholder - update with real sponsors)
