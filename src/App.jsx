@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
 // App version
-const APP_VERSION = "3.2.5";
+const APP_VERSION = "3.2.6";
 
 // Mobile detection hook
 function useIsMobile(breakpoint = 600) {
