@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
 // App version
-const APP_VERSION = "3.2.1";
+const APP_VERSION = "3.2.2";
 
 // Mobile detection hook
 function useIsMobile(breakpoint = 600) {
@@ -745,7 +745,7 @@ export default function BKNationalTournament() {
       if (targetRound === -1) return s;
 
       // Fill scores for all playable matches in target round
-      bracket[targetRound].matches = bracket[targetRound].matches.map(m => {
+      bracket[targetRound].matches = bracket[targetRound].matches.map((m, mIdx) => {
         if (m.status === "completed" || !m.team1Id || !m.team2Id) return m;
         // True coin flip for winner
         const team1Wins = Math.random() < 0.5;
@@ -762,7 +762,8 @@ export default function BKNationalTournament() {
         const today = new Date(); today.setHours(10 + Math.floor(Math.random() * 6), Math.floor(Math.random() * 60), 0, 0);
         const startedAt = today.getTime();
         const completedAt = startedAt + (8 + Math.floor(Math.random() * 38)) * 60000;
-        return { ...m, scores: { team1: a, team2: b }, winner, status: "completed", startedAt, completedAt };
+        const court = (mIdx % TOTAL_COURTS) + 1;
+        return { ...m, scores: { team1: a, team2: b }, winner, status: "completed", startedAt, completedAt, court };
       });
 
       // Advance all winners from this round to next round
@@ -1188,12 +1189,7 @@ export default function BKNationalTournament() {
           return (
             <div>
               {showQuickStart && (
-                <QuickStartCard state={state} onTabSwitch={setActiveTab}
-                  onLoadDemo={() => {
-                    loadDemoTeams();
-                    showNotif("64 demo teams loaded!");
-                  }}
-                />
+                <QuickStartCard state={state} onTabSwitch={setActiveTab} />
               )}
               {state.phase === "setup" ? null : (() => {
           const ds = getDashboardStats(dayFilter);
@@ -1596,7 +1592,7 @@ export default function BKNationalTournament() {
 // ═════════════════════════════════════════════════════════════════
 // QUICK START CARD
 // ═════════════════════════════════════════════════════════════════
-function QuickStartCard({ state, onTabSwitch, onLoadDemo }) {
+function QuickStartCard({ state, onTabSwitch }) {
   const teamCount = state.teams.length;
   const bracketGenerated = state.mainBracket.length > 0;
   const allMatches = [];
@@ -1608,10 +1604,9 @@ function QuickStartCard({ state, onTabSwitch, onLoadDemo }) {
   const steps = [
     { num: 1, label: "Add Teams", desc: "Enter 64 teams or load demo data to test", icon: "\u{1F465}", tab: "teams", done: teamCount >= 16 },
     { num: 2, label: "Generate Bracket", desc: "Draw the 64-team main bracket", icon: "\u{1F3C6}", tab: "bracket", done: bracketGenerated },
-    { num: 3, label: "Assign Courts", desc: "Put matches on courts to begin play (or run simulation)", icon: "\u{1F4CD}", tab: "courts", done: activeCount > 0 || completedCount > 0 },
-    { num: 4, label: "Enter Scores", desc: "Record results as matches finish", icon: "\u{1F4DD}", tab: "courts", done: completedCount > 0 },
+    { num: 3, label: "Assign Courts & Enter Scores", desc: "Put matches on courts and record results (or run simulation)", icon: "\u{1F4CD}", tab: "courts", done: completedCount > 0 },
   ];
-  const currentStep = steps.find(s => !s.done)?.num || 5;
+  const currentStep = steps.find(s => !s.done)?.num || 4;
   if (steps.every(s => s.done)) return null;
 
   return (
@@ -1627,7 +1622,7 @@ function QuickStartCard({ state, onTabSwitch, onLoadDemo }) {
           <p style={{ fontSize: 12, color: "#666", margin: "4px 0 0" }}>Follow these steps to run your tournament</p>
         </div>
         <div style={{ fontSize: 11, fontWeight: 700, color: "#D4A843", background: "#D4A84315", padding: "4px 10px", borderRadius: 20, letterSpacing: "0.05em" }}>
-          STEP {currentStep} OF 4
+          STEP {currentStep} OF 3
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -1669,18 +1664,6 @@ function QuickStartCard({ state, onTabSwitch, onLoadDemo }) {
           );
         })}
       </div>
-      {/* Demo button */}
-      {teamCount === 0 && (
-        <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #1a1a1a", textAlign: "center" }}>
-          <button onClick={onLoadDemo} style={{
-            padding: "10px 20px", fontSize: 13, fontWeight: 700, color: "#D4A843", background: "#D4A84312",
-            border: "1px solid #D4A84330", borderRadius: 8, cursor: "pointer",
-          }}>{"\u26A1"} Load Demo Tournament</button>
-          <p style={{ fontSize: 11, color: "#444", marginTop: 8 }}>
-            Loads 64 demo teams with simulated results — great for testing
-          </p>
-        </div>
-      )}
     </div>
   );
 }
