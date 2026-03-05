@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
 // App version
-const APP_VERSION = "3.2.3";
+const APP_VERSION = "3.2.4";
 
 // Mobile detection hook
 function useIsMobile(breakpoint = 600) {
@@ -758,10 +758,10 @@ export default function BKNationalTournament() {
           a = Math.floor(Math.random() * (b - 1)) + 1; // 1 to b-1
         }
         const winner = team1Wins ? m.team1Id : m.team2Id;
-        // Random timestamps: start between 10am-4pm today, duration 8-45 min
-        const today = new Date(); today.setHours(10 + Math.floor(Math.random() * 6), Math.floor(Math.random() * 60), 0, 0);
+        // Random timestamps: start between 8am-2pm today, duration 50-70 min (realistic 16-frame match ~1hr)
+        const today = new Date(); today.setHours(8 + Math.floor(Math.random() * 6), Math.floor(Math.random() * 60), 0, 0);
         const startedAt = today.getTime();
-        const completedAt = startedAt + (8 + Math.floor(Math.random() * 38)) * 60000;
+        const completedAt = startedAt + (50 + Math.floor(Math.random() * 21)) * 60000;
         const court = (mIdx % TOTAL_COURTS) + 1;
         return { ...m, scores: { team1: a, team2: b }, winner, status: "completed", startedAt, completedAt, court };
       });
@@ -961,9 +961,12 @@ export default function BKNationalTournament() {
       .map(m => m.completedAt - m.startedAt);
     const avgDuration = durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length / 60000) : 0;
 
-    // Estimated finish
+    // Estimated finish — waiting matches in batches * avg duration, half-batch for active
     const remaining = matches.length - completed.length;
-    const estMinsLeft = avgDuration > 0 && TOTAL_COURTS > 0 ? Math.ceil((remaining / TOTAL_COURTS) * avgDuration) : 0;
+    const waitingCount = remaining - active.length;
+    const batchesLeft = TOTAL_COURTS > 0 ? Math.ceil(waitingCount / TOTAL_COURTS) : 0;
+    const totalBatches = batchesLeft + (active.length > 0 ? 0.5 : 0);
+    const estMinsLeft = avgDuration > 0 ? Math.ceil(totalBatches * avgDuration) : 0;
     const estFinish = estMinsLeft > 0 ? new Date(Date.now() + estMinsLeft * 60000) : null;
 
     return {
@@ -1603,7 +1606,7 @@ function QuickStartCard({ state, onTabSwitch }) {
 
   const steps = [
     { num: 1, label: "Add Teams", desc: "Enter 64 teams or load demo data to test", icon: "\u{1F465}", tab: "teams", done: teamCount >= 16 },
-    { num: 2, label: "Generate Bracket", desc: "Draw the 64-team main bracket", icon: "\u{1F3C6}", tab: "bracket", done: bracketGenerated },
+    { num: 2, label: "Generate Bracket", desc: "Draw the 64-team main bracket", icon: "\u{1F3C6}", tab: "teams", done: bracketGenerated },
     { num: 3, label: "Assign Courts & Enter Scores", desc: "Put matches on courts and record results (or run simulation)", icon: "\u{1F4CD}", tab: "courts", done: completedCount > 0 },
   ];
   const currentStep = steps.find(s => !s.done)?.num || 4;
