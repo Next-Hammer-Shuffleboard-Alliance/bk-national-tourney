@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
 // App version
-const APP_VERSION = "3.2.6";
+const APP_VERSION = "3.2.7";
 
 // Mobile detection hook
 function useIsMobile(breakpoint = 600) {
@@ -973,15 +973,29 @@ export default function BKNationalTournament() {
     const dayComplete = matches.length > 0 && completed.length === matches.length;
     let elapsedTime = null;
     if (dayComplete && completed.length > 0) {
-      const starts = completed.filter(m => m.startedAt).map(m => m.startedAt);
-      const ends = completed.filter(m => m.completedAt).map(m => m.completedAt);
-      if (starts.length > 0 && ends.length > 0) {
-        const earliest = Math.min(...starts);
-        const latest = Math.max(...ends);
-        const elapsedMins = Math.round((latest - earliest) / 60000);
-        const h = Math.floor(elapsedMins / 60);
-        const m = elapsedMins % 60;
-        elapsedTime = h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${elapsedMins}m`;
+      if (day === "all") {
+        // Sum Day 1 and Day 2 elapsed times separately
+        let totalElapsedMins = 0;
+        for (const d of [1, 2]) {
+          const dayMatches = getMatchesForDay(d).filter(m => m.status === "completed");
+          const dStarts = dayMatches.filter(m => m.startedAt).map(m => m.startedAt);
+          const dEnds = dayMatches.filter(m => m.completedAt).map(m => m.completedAt);
+          if (dStarts.length > 0 && dEnds.length > 0) {
+            totalElapsedMins += Math.round((Math.max(...dEnds) - Math.min(...dStarts)) / 60000);
+          }
+        }
+        const h = Math.floor(totalElapsedMins / 60);
+        const m = totalElapsedMins % 60;
+        elapsedTime = h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${totalElapsedMins}m`;
+      } else {
+        const starts = completed.filter(m => m.startedAt).map(m => m.startedAt);
+        const ends = completed.filter(m => m.completedAt).map(m => m.completedAt);
+        if (starts.length > 0 && ends.length > 0) {
+          const elapsedMins = Math.round((Math.max(...ends) - Math.min(...starts)) / 60000);
+          const h = Math.floor(elapsedMins / 60);
+          const m = elapsedMins % 60;
+          elapsedTime = h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${elapsedMins}m`;
+        }
       }
     }
 
