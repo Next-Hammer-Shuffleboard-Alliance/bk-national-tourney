@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
 // App version
-const APP_VERSION = "3.2.4";
+const APP_VERSION = "3.2.5";
 
 // Mobile detection hook
 function useIsMobile(breakpoint = 600) {
@@ -31,10 +31,10 @@ const DAY_ROUND_CONFIG = {
 
 // Sponsor configuration (placeholder - update with real sponsors)
 const SPONSORS = [
-  { name: "Brooklyn Brewery", tagline: "Official Beer Sponsor", color: "#B8860B", icon: "🍺" },
-  { name: "Royal Palms", tagline: "Home of Brooklyn Shuffleboard", color: "#3A8E6E", icon: "🌴" },
-  { name: "Paulie Gee's", tagline: "Official Pizza Partner", color: "#E85D3A", icon: "🍕" },
-  { name: "Jameson", tagline: "Official Spirits Partner", color: "#2E7D32", icon: "🥃" },
+  { name: "Brooklyn Brewery", tagline: "Official Beer Sponsor", color: "#B8860B", gradEnd: "#8B6508", icon: "🍺", cta: "Cheers to the game!" },
+  { name: "Royal Palms", tagline: "Home of Brooklyn Shuffleboard", color: "#3A8E6E", gradEnd: "#2A6B50", icon: "🌴", cta: "Where the puck stops." },
+  { name: "Paulie Gee's", tagline: "Official Pizza Partner", color: "#E85D3A", gradEnd: "#C44425", icon: "🍕", cta: "Fuel your next frame." },
+  { name: "Jameson", tagline: "Official Spirits Partner", color: "#2E7D32", gradEnd: "#1B5E20", icon: "🥃", cta: "Smooth shots only." },
 ];
 
 // Embedded images (base64)
@@ -969,12 +969,28 @@ export default function BKNationalTournament() {
     const estMinsLeft = avgDuration > 0 ? Math.ceil(totalBatches * avgDuration) : 0;
     const estFinish = estMinsLeft > 0 ? new Date(Date.now() + estMinsLeft * 60000) : null;
 
+    // Day completion: if all matches for this filter are done, show elapsed time
+    const dayComplete = matches.length > 0 && completed.length === matches.length;
+    let elapsedTime = null;
+    if (dayComplete && completed.length > 0) {
+      const starts = completed.filter(m => m.startedAt).map(m => m.startedAt);
+      const ends = completed.filter(m => m.completedAt).map(m => m.completedAt);
+      if (starts.length > 0 && ends.length > 0) {
+        const earliest = Math.min(...starts);
+        const latest = Math.max(...ends);
+        const elapsedMins = Math.round((latest - earliest) / 60000);
+        const h = Math.floor(elapsedMins / 60);
+        const m = elapsedMins % 60;
+        elapsedTime = h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${elapsedMins}m`;
+      }
+    }
+
     return {
       total: matches.length, completed: completed.length, active: active.length,
       waiting: waiting.length, remaining,
       mainTotal: mainMatches.length, mainCompleted,
       conTotal: conMatches.length, conCompleted,
-      avgDuration, estFinish,
+      avgDuration, estFinish, dayComplete, elapsedTime,
     };
   }
 
@@ -1219,10 +1235,10 @@ export default function BKNationalTournament() {
                   <div style={{ fontSize: 28, fontWeight: 800, color: "#fff" }}>{ds.avgDuration > 0 ? `${ds.avgDuration} min` : "—"}</div>
                   <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>rolling average</div>
                 </div>
-                <div style={{ background: "#0d0d0d", border: "1px solid #1a1a1a", borderRadius: 12, padding: "20px 20px 16px", borderTop: `3px solid ${ds.remaining > 40 ? "#E85D3A" : "#3A8E6E"}` }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Est. Finish</div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: "#fff" }}>{ds.estFinish ? ds.estFinish.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "—"}</div>
-                  <div style={{ fontSize: 11, color: ds.remaining > 40 ? "#E85D3A" : "#3A8E6E", marginTop: 4 }}>{ds.remaining} matches remaining</div>
+                <div style={{ background: "#0d0d0d", border: "1px solid #1a1a1a", borderRadius: 12, padding: "20px 20px 16px", borderTop: `3px solid ${ds.dayComplete ? "#3A8E6E" : ds.remaining > 40 ? "#E85D3A" : "#3A8E6E"}` }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>{ds.dayComplete ? (dayFilter === "all" ? "Tournament Complete" : `Day ${dayFilter} Complete`) : "Est. Finish"}</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: "#fff" }}>{ds.dayComplete ? (ds.elapsedTime || "✓") : ds.estFinish ? ds.estFinish.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "—"}</div>
+                  <div style={{ fontSize: 11, color: ds.dayComplete ? "#3A8E6E" : ds.remaining > 40 ? "#E85D3A" : "#3A8E6E", marginTop: 4 }}>{ds.dayComplete ? "all matches finished" : `${ds.remaining} matches remaining`}</div>
                 </div>
               </div>
 
@@ -1727,19 +1743,42 @@ function SponsorBanner({ sponsors, activeIdx }) {
   const sp = sponsors[activeIdx % sponsors.length];
   return (
     <div style={{
-      margin: "16px 0", padding: "14px 20px",
-      background: `linear-gradient(135deg, ${sp.color}10, ${sp.color}05)`,
-      border: `1px solid ${sp.color}20`, borderRadius: 10,
-      display: "flex", alignItems: "center", gap: 14, minHeight: 52, transition: "all 0.6s ease",
+      margin: "16px 0", padding: "20px 24px",
+      background: `linear-gradient(135deg, ${sp.color}25 0%, ${sp.gradEnd || sp.color}12 60%, #0d0d0d 100%)`,
+      border: `1px solid ${sp.color}30`, borderRadius: 14,
+      display: "flex", alignItems: "center", gap: 16, minHeight: 80,
+      transition: "all 0.6s ease", position: "relative", overflow: "hidden",
     }}>
-      <div style={{ width: 36, height: 36, borderRadius: 8, background: `${sp.color}15`, border: `1px solid ${sp.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{sp.icon}</div>
-      <div style={{ flex: 1 }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: sp.color }}>{sp.name}</span>
-        <span style={{ fontSize: 11, color: "#555", marginLeft: 8 }}>{sp.tagline}</span>
+      {/* Background icon watermark */}
+      <div style={{
+        position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)",
+        fontSize: 64, opacity: 0.08, pointerEvents: "none", lineHeight: 1,
+      }}>{sp.icon}</div>
+
+      {/* Icon */}
+      <div style={{
+        width: 48, height: 48, borderRadius: 12,
+        background: `linear-gradient(135deg, ${sp.color}30, ${sp.color}15)`,
+        border: `1.5px solid ${sp.color}40`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 24, flexShrink: 0,
+      }}>{sp.icon}</div>
+
+      {/* Text */}
+      <div style={{ flex: 1, position: "relative", zIndex: 1 }}>
+        <div style={{ fontSize: 16, fontWeight: 800, color: "#fff", letterSpacing: "-0.01em" }}>{sp.name}</div>
+        <div style={{ fontSize: 12, color: sp.color, fontWeight: 600, marginTop: 2 }}>{sp.tagline}</div>
+        {sp.cta && <div style={{ fontSize: 11, color: "#666", marginTop: 4, fontStyle: "italic" }}>{sp.cta}</div>}
       </div>
-      <div style={{ display: "flex", gap: 5 }}>
+
+      {/* Dots */}
+      <div style={{ display: "flex", gap: 5, position: "relative", zIndex: 1, flexShrink: 0 }}>
         {sponsors.map((_, i) => (
-          <div key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: i === activeIdx % sponsors.length ? sp.color : "#333" }} />
+          <div key={i} style={{
+            width: 7, height: 7, borderRadius: "50%",
+            background: i === activeIdx % sponsors.length ? sp.color : "#333",
+            transition: "background 0.3s ease",
+          }} />
         ))}
       </div>
     </div>
