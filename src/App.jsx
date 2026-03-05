@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
 // App version
-const APP_VERSION = "3.1.9";
+const APP_VERSION = "3.2.1";
 
 // Mobile detection hook
 function useIsMobile(breakpoint = 600) {
@@ -93,7 +93,7 @@ export default function BKNationalTournament() {
   const [organizerUnlocked, setOrganizerUnlocked] = useState(false);
   const tapCountRef = useRef(0);
   const tapTimerRef = useRef(null);
-  const [activeTab, setActiveTab] = useState("teams");
+  const [activeTab, setActiveTab] = useState("dashboard");
   const tournamentId = DEFAULT_TOURNAMENT_ID;
 
   const [teamForm, setTeamForm] = useState({
@@ -477,7 +477,7 @@ export default function BKNationalTournament() {
         setMyTeamId("");
         setAnnouncements([]);
         setOrganizerBracketTab("main");
-        setActiveTab("teams");
+        setActiveTab("dashboard");
         setConfirmDialog(null);
         setOrganizerUnlocked(false);
         setView("player");
@@ -1061,6 +1061,29 @@ export default function BKNationalTournament() {
         </div>
       )}
 
+      {/* Persistent organizer toolbar — Sim + Reset */}
+      {view === "organizer" && state.phase !== "setup" && (
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6,
+          padding: "6px 16px", borderBottom: "1px solid #111",
+        }}>
+          {(() => {
+            const mainNext = getNextSimRound("main");
+            const conNext = consolationBracketGenerated ? getNextSimRound("consolation") : null;
+            return (
+              <>
+                {mainNext && <button style={{ ...S.btnSm, fontSize: 11, color: "#D4A843", borderColor: "#D4A84330" }}
+                  onClick={() => simulateRound("main")}>{"⚡"} Sim Main {mainNext}</button>}
+                {conNext && <button style={{ ...S.btnSm, fontSize: 11, color: "#D4A843", borderColor: "#D4A84330" }}
+                  onClick={() => simulateRound("consolation")}>{"⚡"} Sim Con {conNext}</button>}
+              </>
+            );
+          })()}
+          <button style={{ ...S.btnSm, fontSize: 11, color: "#E85D3A", borderColor: "#E85D3A30" }}
+            onClick={fullReset}>{"🗑"} Reset</button>
+        </div>
+      )}
+
       <main style={S.main}>
         {/* ═══ TOURNAMENT COMPLETE BANNER ═══ */}
         {tournamentComplete && view === "organizer" && (
@@ -1139,9 +1162,6 @@ export default function BKNationalTournament() {
                 </div>
               );
             })()}
-            <div style={{ marginTop: 20 }}>
-              <button style={{ ...S.btnSm, fontSize: 11, color: "#E85D3A", borderColor: "#E85D3A30" }} onClick={fullReset}>🗑 Full Reset</button>
-            </div>
           </div>
         )}
 
@@ -1173,9 +1193,6 @@ export default function BKNationalTournament() {
                     loadDemoTeams();
                     showNotif("64 demo teams loaded!");
                   }}
-                  onSimulate={(type) => simulateRound(type)}
-                  getNextSimRound={getNextSimRound}
-                  consolationBracketGenerated={consolationBracketGenerated}
                 />
               )}
               {state.phase === "setup" ? null : (() => {
@@ -1295,15 +1312,6 @@ export default function BKNationalTournament() {
         {/* ═══ TEAMS TAB ═══ */}
         {view === "organizer" && activeTab === "teams" && (
           <div>
-            {/* Version display */}
-            {state.phase === "setup" && (
-              <div style={{ ...S.card, marginBottom: 16, padding: 12 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                  <span style={{ fontSize: 11, color: "#666" }}>v{APP_VERSION} · {DEFAULT_TOURNAMENT_ID}</span>
-                </div>
-              </div>
-            )}
-
             <div style={S.card}>
               <h2 style={S.cardTitle}>{editingTeamId ? "✏️ Edit Team" : "Add Team or BYE"}</h2>
               {editingTeamId && (
@@ -1399,9 +1407,6 @@ export default function BKNationalTournament() {
                 {state.phase === "playing" && !mainR1Complete && (
                   <button style={S.btnSec} onClick={reseed}>🔄 Re-generate</button>
                 )}
-                {state.phase !== "setup" && (
-                  <button style={{ ...S.btnSm, fontSize: 11, color: "#E85D3A", borderColor: "#E85D3A30" }} onClick={fullReset}>🗑 Full Reset</button>
-                )}
               </div>
 
               {state.teams.length === 0 ? (
@@ -1476,35 +1481,6 @@ export default function BKNationalTournament() {
                   }} onClick={() => consolationBracketGenerated && setOrganizerBracketTab("consolation")}>
                     🥈 Consolation
                   </button>
-                </div>
-                <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                  {organizerBracketTab === "main" && (() => {
-                    const nextRound = getNextSimRound("main");
-                    return nextRound ? (
-                      <button style={{ ...S.btnSm, fontSize: 11, color: "#D4A843", borderColor: "#D4A84330" }}
-                        onClick={() => simulateRound("main")}
-                        title={`Auto-fill random scores for ${nextRound}`}>
-                        ⚡ Sim {nextRound}
-                      </button>
-                    ) : (
-                      <span style={{ fontSize: 11, color: "#333" }}>✓ All rounds complete</span>
-                    );
-                  })()}
-                  {organizerBracketTab === "consolation" && consolationBracketGenerated && (() => {
-                    const hasTeams = state.consolationBracket.some(r => r.matches.some(m => m.team1Id && m.team2Id));
-                    if (!hasTeams) return <span style={{ fontSize: 11, color: "#555" }}>Awaiting Main R1 results…</span>;
-                    const nextRound = getNextSimRound("consolation");
-                    return nextRound ? (
-                      <button style={{ ...S.btnSm, fontSize: 11, color: "#D4A843", borderColor: "#D4A84330" }}
-                        onClick={() => simulateRound("consolation")}
-                        title={`Auto-fill random scores for ${nextRound}`}>
-                        ⚡ Sim {nextRound}
-                      </button>
-                    ) : (
-                      <span style={{ fontSize: 11, color: "#333" }}>✓ All rounds complete</span>
-                    );
-                  })()}
-                  <button style={{ ...S.btnSm, fontSize: 11, color: "#E85D3A", borderColor: "#E85D3A30" }} onClick={fullReset} title="Reset everything">🗑 Reset</button>
                 </div>
               </div>
             )}
@@ -1620,7 +1596,7 @@ export default function BKNationalTournament() {
 // ═════════════════════════════════════════════════════════════════
 // QUICK START CARD
 // ═════════════════════════════════════════════════════════════════
-function QuickStartCard({ state, onTabSwitch, onLoadDemo, onSimulate, getNextSimRound, consolationBracketGenerated }) {
+function QuickStartCard({ state, onTabSwitch, onLoadDemo }) {
   const teamCount = state.teams.length;
   const bracketGenerated = state.mainBracket.length > 0;
   const allMatches = [];
@@ -1632,7 +1608,7 @@ function QuickStartCard({ state, onTabSwitch, onLoadDemo, onSimulate, getNextSim
   const steps = [
     { num: 1, label: "Add Teams", desc: "Enter 64 teams or load demo data to test", icon: "\u{1F465}", tab: "teams", done: teamCount >= 16 },
     { num: 2, label: "Generate Bracket", desc: "Draw the 64-team main bracket", icon: "\u{1F3C6}", tab: "bracket", done: bracketGenerated },
-    { num: 3, label: "Assign Courts", desc: "Put matches on courts to begin play", icon: "\u{1F4CD}", tab: "courts", done: activeCount > 0 || completedCount > 0 },
+    { num: 3, label: "Assign Courts", desc: "Put matches on courts to begin play (or run simulation)", icon: "\u{1F4CD}", tab: "courts", done: activeCount > 0 || completedCount > 0 },
     { num: 4, label: "Enter Scores", desc: "Record results as matches finish", icon: "\u{1F4DD}", tab: "courts", done: completedCount > 0 },
   ];
   const currentStep = steps.find(s => !s.done)?.num || 5;
@@ -1688,42 +1664,22 @@ function QuickStartCard({ state, onTabSwitch, onLoadDemo, onSimulate, getNextSim
                 </div>
                 {isCurrent && <div style={{ fontSize: 11, color: "#777", marginTop: 2 }}>{step.desc}</div>}
               </div>
-              {isCurrent && <div style={{ fontSize: 11, color: "#3A8E6E", fontWeight: 700 }}>Go \u2192</div>}
+              {isCurrent && <div style={{ fontSize: 11, color: "#3A8E6E", fontWeight: 700 }}>{"Go →"}</div>}
             </div>
           );
         })}
       </div>
-      {/* Demo + Simulate buttons */}
-      {(currentStep === 1 || (currentStep >= 2 && bracketGenerated)) && (
-        <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #1a1a1a", display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
-          {teamCount === 0 && (
-            <button onClick={onLoadDemo} style={{
-              padding: "10px 20px", fontSize: 13, fontWeight: 700, color: "#D4A843", background: "#D4A84312",
-              border: "1px solid #D4A84330", borderRadius: 8, cursor: "pointer",
-            }}>{"\u26A1"} Load Demo Tournament</button>
-          )}
-          {bracketGenerated && (() => {
-            const mainNext = getNextSimRound("main");
-            const conNext = consolationBracketGenerated ? getNextSimRound("consolation") : null;
-            return (
-              <>
-                {mainNext && <button onClick={() => onSimulate("main")} style={{
-                  padding: "10px 20px", fontSize: 13, fontWeight: 700, color: "#D4A843", background: "#D4A84312",
-                  border: "1px solid #D4A84330", borderRadius: 8, cursor: "pointer",
-                }}>{"\u26A1"} Sim Main {mainNext}</button>}
-                {conNext && <button onClick={() => onSimulate("consolation")} style={{
-                  padding: "10px 20px", fontSize: 13, fontWeight: 700, color: "#D4A843", background: "#D4A84312",
-                  border: "1px solid #D4A84330", borderRadius: 8, cursor: "pointer",
-                }}>{"\u26A1"} Sim Consolation {conNext}</button>}
-              </>
-            );
-          })()}
-        </div>
-      )}
+      {/* Demo button */}
       {teamCount === 0 && (
-        <p style={{ fontSize: 11, color: "#444", marginTop: 8, textAlign: "center" }}>
-          Loads 64 demo teams with simulated results — great for testing
-        </p>
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #1a1a1a", textAlign: "center" }}>
+          <button onClick={onLoadDemo} style={{
+            padding: "10px 20px", fontSize: 13, fontWeight: 700, color: "#D4A843", background: "#D4A84312",
+            border: "1px solid #D4A84330", borderRadius: 8, cursor: "pointer",
+          }}>{"\u26A1"} Load Demo Tournament</button>
+          <p style={{ fontSize: 11, color: "#444", marginTop: 8 }}>
+            Loads 64 demo teams with simulated results — great for testing
+          </p>
+        </div>
       )}
     </div>
   );
