@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
 // App version
-const APP_VERSION = "3.2.2";
+const APP_VERSION = "3.2.3";
 
 // Mobile detection hook
 function useIsMobile(breakpoint = 600) {
@@ -1076,7 +1076,7 @@ export default function BKNationalTournament() {
                 {mainNext && <button style={{ ...S.btnSm, fontSize: 11, color: "#D4A843", borderColor: "#D4A84330" }}
                   onClick={() => simulateRound("main")}>{"⚡"} Sim Main {mainNext}</button>}
                 {conNext && <button style={{ ...S.btnSm, fontSize: 11, color: "#D4A843", borderColor: "#D4A84330" }}
-                  onClick={() => simulateRound("consolation")}>{"⚡"} Sim Con {conNext}</button>}
+                  onClick={() => simulateRound("consolation")}>{"⚡"} Sim Consolation {conNext}</button>}
               </>
             );
           })()}
