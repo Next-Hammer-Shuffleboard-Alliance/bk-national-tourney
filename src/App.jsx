@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
 // App version
-const APP_VERSION = "3.2.7";
+const APP_VERSION = "3.2.8";
 
 // Mobile detection hook
 function useIsMobile(breakpoint = 600) {
@@ -1280,6 +1280,7 @@ export default function BKNationalTournament() {
                           {m.startedAt && <span style={{ fontSize: 10, color: "#D4A843" }}>⏱ {formatDuration(m.startedAt, Date.now())}</span>}
                         </div>
                         <div style={{ fontSize: 13, color: "#ccc" }}>{tLabel(m.team1Id)} <span style={{ color: "#333" }}>vs</span> {tLabel(m.team2Id)}</div>
+                        <MatchScoreEntry match={m} tLabel={tLabel} onScore={enterBracketScoreWithCheck} compact={true} />
                       </div>
                     ))}
                   </div>
@@ -1559,7 +1560,7 @@ export default function BKNationalTournament() {
 
         {/* ═══ COURTS TAB ═══ */}
         {view === "organizer" && activeTab === "courts" && (
-          <CourtsView state={state} tLabel={tLabel} getAllMatches={getAllMatches} assignCourt={assignCourt} />
+          <CourtsView state={state} tLabel={tLabel} getAllMatches={getAllMatches} assignCourt={assignCourt} onScore={enterBracketScoreWithCheck} />
         )}
 
         {/* ═══ ORGANIZER: ANNOUNCEMENTS ═══ */}
@@ -1997,9 +1998,89 @@ function AnnouncementComposer({ onPost }) {
 }
 
 // ═════════════════════════════════════════════════════════════════
+// MATCH SCORE ENTRY (reusable winner picker + optional score)
+// ═════════════════════════════════════════════════════════════════
+function MatchScoreEntry({ match, tLabel, onScore, compact }) {
+  const [picking, setPicking] = useState(null); // null | "team1" | "team2"
+  const [s1, setS1] = useState("");
+  const [s2, setS2] = useState("");
+
+  function selectWinner(slot) {
+    setPicking(slot);
+    setS1(slot === "team1" ? "15" : "");
+    setS2(slot === "team2" ? "15" : "");
+  }
+
+  function confirm() {
+    const a = s1 ? parseInt(s1) : (picking === "team1" ? 1 : 0);
+    const b = s2 ? parseInt(s2) : (picking === "team2" ? 1 : 0);
+    const bracketType = match.bracket === "Main" ? "main" : "consolation";
+    onScore(bracketType, match.roundIdx, match.id, a, b);
+    setPicking(null); setS1(""); setS2("");
+  }
+
+  function cancel() { setPicking(null); setS1(""); setS2(""); }
+
+  if (!match.team1Id || !match.team2Id) return null;
+
+  return (
+    <div style={{ marginTop: compact ? 8 : 10 }}>
+      {!picking ? (
+        <div style={{ display: "flex", gap: 6 }}>
+          <button onClick={() => selectWinner("team1")} style={{
+            flex: 1, padding: compact ? "6px 8px" : "8px 10px", fontSize: compact ? 11 : 12, fontWeight: 700,
+            color: "#3A8E6E", background: "#3A8E6E12", border: "1px solid #3A8E6E30",
+            borderRadius: 6, cursor: "pointer", textAlign: "center", lineHeight: 1.3,
+          }}>{tLabel(match.team1Id)} wins</button>
+          <button onClick={() => selectWinner("team2")} style={{
+            flex: 1, padding: compact ? "6px 8px" : "8px 10px", fontSize: compact ? 11 : 12, fontWeight: 700,
+            color: "#3A8E6E", background: "#3A8E6E12", border: "1px solid #3A8E6E30",
+            borderRadius: 6, cursor: "pointer", textAlign: "center", lineHeight: 1.3,
+          }}>{tLabel(match.team2Id)} wins</button>
+        </div>
+      ) : (
+        <div style={{ background: "#111", borderRadius: 8, padding: compact ? "8px 10px" : "10px 12px" }}>
+          <div style={{ fontSize: 11, color: "#3A8E6E", fontWeight: 700, marginBottom: 8 }}>
+            {"🏆"} {tLabel(picking === "team1" ? match.team1Id : match.team2Id)} wins
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <div style={{ flex: 1, textAlign: "center" }}>
+              <div style={{ fontSize: 10, color: "#666", marginBottom: 3 }}>{tLabel(match.team1Id)}</div>
+              <input value={s1} onChange={e => setS1(e.target.value.replace(/\D/g, ""))}
+                style={{ width: "100%", padding: "6px", background: "#080808", border: "1px solid #1e1e1e", borderRadius: 6, color: "#fff", fontSize: 16, fontWeight: 700, textAlign: "center", outline: "none" }}
+                placeholder="0" />
+            </div>
+            <span style={{ color: "#333", fontSize: 12, fontWeight: 700 }}>–</span>
+            <div style={{ flex: 1, textAlign: "center" }}>
+              <div style={{ fontSize: 10, color: "#666", marginBottom: 3 }}>{tLabel(match.team2Id)}</div>
+              <input value={s2} onChange={e => setS2(e.target.value.replace(/\D/g, ""))}
+                style={{ width: "100%", padding: "6px", background: "#080808", border: "1px solid #1e1e1e", borderRadius: 6, color: "#fff", fontSize: 16, fontWeight: 700, textAlign: "center", outline: "none" }}
+                placeholder="0" />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button onClick={confirm} style={{
+              flex: 1, padding: "8px", fontSize: 12, fontWeight: 700,
+              color: "#fff", background: "#3A8E6E", border: "none",
+              borderRadius: 6, cursor: "pointer",
+            }}>{"✓"} Confirm</button>
+            <button onClick={cancel} style={{
+              padding: "8px 12px", fontSize: 12, fontWeight: 700,
+              color: "#888", background: "transparent", border: "1px solid #333",
+              borderRadius: 6, cursor: "pointer",
+            }}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ═════════════════════════════════════════════════════════════════
 // COURTS VIEW
 // ═════════════════════════════════════════════════════════════════
-function CourtsView({ state, tLabel, getAllMatches, assignCourt }) {
+function CourtsView({ state, tLabel, getAllMatches, assignCourt, onScore }) {
   const allMatches = getAllMatches();
   const upcoming = allMatches.filter(m => ["pending", "waiting"].includes(m.status) && !m.court && m.team1Id && m.team2Id);
 
@@ -2064,6 +2145,7 @@ function CourtsView({ state, tLabel, getAllMatches, assignCourt }) {
                       {active.startedAt && (
                         <div style={{ fontSize: 10, color: "#D4A843", marginTop: 4 }}>Assigned {new Date(active.startedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</div>
                       )}
+                      <MatchScoreEntry match={active} tLabel={tLabel} onScore={onScore} compact={false} />
                     </div>
                   ) : last ? (
                     <div>
