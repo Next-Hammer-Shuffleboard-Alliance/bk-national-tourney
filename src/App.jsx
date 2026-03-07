@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
 // App version
-const APP_VERSION = "3.2.9";
+const APP_VERSION = "3.3.0";
 
 // Mobile detection hook
 function useIsMobile(breakpoint = 600) {
@@ -1232,7 +1232,7 @@ export default function BKNationalTournament() {
           const recentlyCompleted = allMatches.filter(m => m.status === "completed" && m.completedAt).sort((a, b) => b.completedAt - a.completedAt).slice(0, 6);
           const upNext = allMatches.filter(m => m.status === "waiting").slice(0, 6);
           const occupiedCourts = new Set(getAllMatches().filter(m => m.status === "on_court" && m.court).map(m => m.court));
-          const availableCourts = Array.from({ length: TOTAL_COURTS }, (_, i) => i + 1).filter(c => !occupiedCourts.has(c));
+          const allCourts = Array.from({ length: TOTAL_COURTS }, (_, i) => i + 1);
           return (<>
               {/* Stat cards */}
               <div className="vt-stat-row" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 12, marginBottom: 20 }}>
@@ -1303,7 +1303,7 @@ export default function BKNationalTournament() {
                         </div>
                         <select style={S.courtSelect} onChange={e => { if (e.target.value) assignCourt(m.bracket.toLowerCase() === "main" ? "main" : "consolation", m.roundIdx, m.id, parseInt(e.target.value)); }}>
                           <option value="">Court...</option>
-                          {availableCourts.map(c => <option key={c} value={c}>Ct {c}</option>)}
+                          {allCourts.map(c => <option key={c} value={c}>Ct {c}{occupiedCourts.has(c) ? " (in use)" : ""}</option>)}
                         </select>
                       </div>
                     ))}
@@ -2003,6 +2003,7 @@ function AnnouncementComposer({ onPost }) {
 // MATCH SCORE ENTRY (reusable winner picker + optional score)
 // ═════════════════════════════════════════════════════════════════
 function MatchScoreEntry({ match, tLabel, onScore, compact }) {
+  const [expanded, setExpanded] = useState(false);
   const [picking, setPicking] = useState(null); // null | "team1" | "team2"
   const [s1, setS1] = useState("");
   const [s2, setS2] = useState("");
@@ -2018,27 +2019,44 @@ function MatchScoreEntry({ match, tLabel, onScore, compact }) {
     const b = s2 ? parseInt(s2) : (picking === "team2" ? 1 : 0);
     const bracketType = match.bracket === "Main" ? "main" : "consolation";
     onScore(bracketType, match.roundIdx, match.id, a, b);
-    setPicking(null); setS1(""); setS2("");
+    setPicking(null); setS1(""); setS2(""); setExpanded(false);
   }
 
-  function cancel() { setPicking(null); setS1(""); setS2(""); }
+  function cancel() { setPicking(null); setS1(""); setS2(""); if (compact) setExpanded(false); }
 
   if (!match.team1Id || !match.team2Id) return null;
+
+  // Compact: show a small "Record Result" button that expands
+  if (compact && !expanded) {
+    return (
+      <div style={{ marginTop: 6 }}>
+        <button onClick={() => setExpanded(true)} style={{
+          padding: "5px 12px", fontSize: 11, fontWeight: 700,
+          color: "#3A8E6E", background: "#3A8E6E12", border: "1px solid #3A8E6E30",
+          borderRadius: 6, cursor: "pointer",
+        }}>{"📝"} Record Result</button>
+      </div>
+    );
+  }
 
   return (
     <div style={{ marginTop: compact ? 8 : 10 }}>
       {!picking ? (
-        <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: compact ? "wrap" : "nowrap" }}>
           <button onClick={() => selectWinner("team1")} style={{
-            flex: 1, padding: compact ? "6px 8px" : "8px 10px", fontSize: compact ? 11 : 12, fontWeight: 700,
+            flex: compact ? "1 1 45%" : 1, padding: compact ? "6px 8px" : "8px 10px", fontSize: compact ? 11 : 12, fontWeight: 700,
             color: "#3A8E6E", background: "#3A8E6E12", border: "1px solid #3A8E6E30",
             borderRadius: 6, cursor: "pointer", textAlign: "center", lineHeight: 1.3,
           }}>{tLabel(match.team1Id)} wins</button>
           <button onClick={() => selectWinner("team2")} style={{
-            flex: 1, padding: compact ? "6px 8px" : "8px 10px", fontSize: compact ? 11 : 12, fontWeight: 700,
+            flex: compact ? "1 1 45%" : 1, padding: compact ? "6px 8px" : "8px 10px", fontSize: compact ? 11 : 12, fontWeight: 700,
             color: "#3A8E6E", background: "#3A8E6E12", border: "1px solid #3A8E6E30",
             borderRadius: 6, cursor: "pointer", textAlign: "center", lineHeight: 1.3,
           }}>{tLabel(match.team2Id)} wins</button>
+          {compact && <button onClick={cancel} style={{
+            padding: "5px 10px", fontSize: 10, color: "#666", background: "transparent",
+            border: "1px solid #222", borderRadius: 6, cursor: "pointer",
+          }}>Cancel</button>}
         </div>
       ) : (
         <div style={{ background: "#111", borderRadius: 8, padding: compact ? "8px 10px" : "10px 12px" }}>
@@ -2086,7 +2104,7 @@ function CourtsView({ state, tLabel, getAllMatches, assignCourt, onScore }) {
   const allMatches = getAllMatches();
   const upcoming = allMatches.filter(m => ["pending", "waiting"].includes(m.status) && !m.court && m.team1Id && m.team2Id);
   const occupiedCourts = new Set(allMatches.filter(m => m.status === "on_court" && m.court).map(m => m.court));
-  const availableCourts = Array.from({ length: TOTAL_COURTS }, (_, i) => i + 1).filter(c => !occupiedCourts.has(c));
+  const allCourts = Array.from({ length: TOTAL_COURTS }, (_, i) => i + 1);
 
   return (
     <div>
@@ -2205,7 +2223,7 @@ function CourtsView({ state, tLabel, getAllMatches, assignCourt, onScore }) {
                     if (c) assignCourt(match.bracket === "Main" ? "main" : "consolation", match.roundIdx, match.id, c);
                   }} defaultValue="">
                   <option value="">Court...</option>
-                  {availableCourts.map(c => <option key={c} value={c}>Ct {c}</option>)}
+                  {allCourts.map(c => <option key={c} value={c}>Ct {c}{occupiedCourts.has(c) ? " (in use)" : ""}</option>)}
                 </select>
               </div>
             ))}
