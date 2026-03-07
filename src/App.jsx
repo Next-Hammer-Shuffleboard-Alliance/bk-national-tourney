@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
 // App version
-const APP_VERSION = "3.2.8";
+const APP_VERSION = "3.2.9";
 
 // Mobile detection hook
 function useIsMobile(breakpoint = 600) {
@@ -1231,6 +1231,8 @@ export default function BKNationalTournament() {
           const liveMatches = allMatches.filter(m => m.status === "on_court").sort((a, b) => (a.startedAt || 0) - (b.startedAt || 0));
           const recentlyCompleted = allMatches.filter(m => m.status === "completed" && m.completedAt).sort((a, b) => b.completedAt - a.completedAt).slice(0, 6);
           const upNext = allMatches.filter(m => m.status === "waiting").slice(0, 6);
+          const occupiedCourts = new Set(getAllMatches().filter(m => m.status === "on_court" && m.court).map(m => m.court));
+          const availableCourts = Array.from({ length: TOTAL_COURTS }, (_, i) => i + 1).filter(c => !occupiedCourts.has(c));
           return (<>
               {/* Stat cards */}
               <div className="vt-stat-row" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 12, marginBottom: 20 }}>
@@ -1301,7 +1303,7 @@ export default function BKNationalTournament() {
                         </div>
                         <select style={S.courtSelect} onChange={e => { if (e.target.value) assignCourt(m.bracket.toLowerCase() === "main" ? "main" : "consolation", m.roundIdx, m.id, parseInt(e.target.value)); }}>
                           <option value="">Court...</option>
-                          {Array.from({ length: TOTAL_COURTS }, (_, i) => i + 1).map(c => <option key={c} value={c}>Ct {c}</option>)}
+                          {availableCourts.map(c => <option key={c} value={c}>Ct {c}</option>)}
                         </select>
                       </div>
                     ))}
@@ -2007,8 +2009,8 @@ function MatchScoreEntry({ match, tLabel, onScore, compact }) {
 
   function selectWinner(slot) {
     setPicking(slot);
-    setS1(slot === "team1" ? "15" : "");
-    setS2(slot === "team2" ? "15" : "");
+    setS1("");
+    setS2("");
   }
 
   function confirm() {
@@ -2083,6 +2085,8 @@ function MatchScoreEntry({ match, tLabel, onScore, compact }) {
 function CourtsView({ state, tLabel, getAllMatches, assignCourt, onScore }) {
   const allMatches = getAllMatches();
   const upcoming = allMatches.filter(m => ["pending", "waiting"].includes(m.status) && !m.court && m.team1Id && m.team2Id);
+  const occupiedCourts = new Set(allMatches.filter(m => m.status === "on_court" && m.court).map(m => m.court));
+  const availableCourts = Array.from({ length: TOTAL_COURTS }, (_, i) => i + 1).filter(c => !occupiedCourts.has(c));
 
   return (
     <div>
@@ -2201,7 +2205,7 @@ function CourtsView({ state, tLabel, getAllMatches, assignCourt, onScore }) {
                     if (c) assignCourt(match.bracket === "Main" ? "main" : "consolation", match.roundIdx, match.id, c);
                   }} defaultValue="">
                   <option value="">Court...</option>
-                  {Array.from({ length: TOTAL_COURTS }, (_, i) => <option key={i + 1} value={i + 1}>Ct {i + 1}</option>)}
+                  {availableCourts.map(c => <option key={c} value={c}>Ct {c}</option>)}
                 </select>
               </div>
             ))}
