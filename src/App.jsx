@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
 // App version
-const APP_VERSION = "3.3.0";
+const APP_VERSION = "3.3.1";
 
 // Mobile detection hook
 function useIsMobile(breakpoint = 600) {
@@ -572,6 +572,28 @@ export default function BKNationalTournament() {
         }
       }
 
+      // Auto-promote queued match on the same court
+      const completedMatch = round.matches.find(m => m.id === matchId);
+      const completedCourt = completedMatch?.court;
+      if (completedCourt) {
+        let promoted = false;
+        ["mainBracket", "consolationBracket"].forEach(bk => {
+          if (promoted) return;
+          const br = newState[bk].map(r => ({ ...r, matches: r.matches.map(m => ({ ...m })) }));
+          for (let ri = 0; ri < br.length && !promoted; ri++) {
+            for (let mi = 0; mi < br[ri].matches.length; mi++) {
+              const qm = br[ri].matches[mi];
+              if (qm.court === completedCourt && qm.status === "queued") {
+                br[ri].matches[mi] = { ...qm, status: "on_court", startedAt: Date.now() };
+                newState = { ...newState, [bk]: br };
+                promoted = true;
+                break;
+              }
+            }
+          }
+        });
+      }
+
       return newState;
     });
   }
@@ -636,12 +658,19 @@ export default function BKNationalTournament() {
       const bracketKey = bracketType === "main" ? "mainBracket" : "consolationBracket";
       const bracket = [...s[bracketKey]];
       const round = { ...bracket[roundIdx] };
+
+      // Check if court already has an active match
+      const allM = [];
+      s.mainBracket.forEach(r => r.matches.forEach(m => allM.push(m)));
+      s.consolationBracket.forEach(r => r.matches.forEach(m => allM.push(m)));
+      const courtBusy = court && allM.some(m => m.court === court && m.status === "on_court");
+
       round.matches = round.matches.map(m => {
         if (m.id !== matchId) return m;
         if (court) {
-          return { ...m, court, status: "on_court", startedAt: m.startedAt || Date.now() };
+          const newStatus = courtBusy ? "queued" : "on_court";
+          return { ...m, court, status: newStatus, startedAt: newStatus === "on_court" ? (m.startedAt || Date.now()) : undefined };
         } else {
-          // Unassign court — set back to waiting
           return { ...m, court: null, status: "waiting", startedAt: undefined };
         }
       });
@@ -1232,6 +1261,9 @@ export default function BKNationalTournament() {
           const recentlyCompleted = allMatches.filter(m => m.status === "completed" && m.completedAt).sort((a, b) => b.completedAt - a.completedAt).slice(0, 6);
           const upNext = allMatches.filter(m => m.status === "waiting").slice(0, 6);
           const occupiedCourts = new Set(getAllMatches().filter(m => m.status === "on_court" && m.court).map(m => m.court));
+          const allCourtMatches = getAllMatches();
+          const courtQueueCounts = {};
+          allCourtMatches.filter(m => m.status === "queued" && m.court).forEach(m => { courtQueueCounts[m.court] = (courtQueueCounts[m.court] || 0) + 1; });
           const allCourts = Array.from({ length: TOTAL_COURTS }, (_, i) => i + 1);
           return (<>
               {/* Stat cards */}
@@ -1303,7 +1335,12 @@ export default function BKNationalTournament() {
                         </div>
                         <select style={S.courtSelect} onChange={e => { if (e.target.value) assignCourt(m.bracket.toLowerCase() === "main" ? "main" : "consolation", m.roundIdx, m.id, parseInt(e.target.value)); }}>
                           <option value="">Court...</option>
-                          {allCourts.map(c => <option key={c} value={c}>Ct {c}{occupiedCourts.has(c) ? " (in use)" : ""}</option>)}
+                          {allCourts.map(c => {
+                            const busy = occupiedCourts.has(c);
+                            const q = courtQueueCounts[c] || 0;
+                            const label = busy ? (q > 0 ? `Ct ${c} (in use +${q})` : `Ct ${c} (in use)`) : `Ct ${c}`;
+                            return <option key={c} value={c}>{label}</option>;
+                          })}
                         </select>
                       </div>
                     ))}
@@ -2104,6 +2141,8 @@ function CourtsView({ state, tLabel, getAllMatches, assignCourt, onScore }) {
   const allMatches = getAllMatches();
   const upcoming = allMatches.filter(m => ["pending", "waiting"].includes(m.status) && !m.court && m.team1Id && m.team2Id);
   const occupiedCourts = new Set(allMatches.filter(m => m.status === "on_court" && m.court).map(m => m.court));
+  const courtQueueCounts = {};
+  allMatches.filter(m => m.status === "queued" && m.court).forEach(m => { courtQueueCounts[m.court] = (courtQueueCounts[m.court] || 0) + 1; });
   const allCourts = Array.from({ length: TOTAL_COURTS }, (_, i) => i + 1);
 
   return (
@@ -2113,6 +2152,7 @@ function CourtsView({ state, tLabel, getAllMatches, assignCourt, onScore }) {
         <div style={{ display: "flex", gap: 20, marginBottom: 20, flexWrap: "wrap" }}>
           {[
             { color: "#D4A843", label: "In Progress" },
+            { color: "#D4A84380", label: "Queued" },
             { color: "#3A8E6E", label: "Last Match Complete" },
             { color: "#282828", border: "#444", label: "Available" },
           ].map(l => (
@@ -2127,6 +2167,7 @@ function CourtsView({ state, tLabel, getAllMatches, assignCourt, onScore }) {
           {Array.from({ length: TOTAL_COURTS }, (_, i) => {
             const cn = i + 1;
             const active = allMatches.find(m => m.court === cn && m.status === "on_court");
+            const queued = allMatches.filter(m => m.court === cn && m.status === "queued");
             const completed = allMatches.filter(m => m.court === cn && m.status === "completed");
             const last = completed.length > 0 ? completed[completed.length - 1] : null;
 
@@ -2145,8 +2186,8 @@ function CourtsView({ state, tLabel, getAllMatches, assignCourt, onScore }) {
                   <span style={{ fontSize: 15, fontWeight: 800, color: "#fff" }}>Court {cn}</span>
                   {active ? (
                     <span style={{ fontSize: 10, fontWeight: 700, color: "#D4A843", display: "flex", alignItems: "center", gap: 4 }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#D4A843", display: "inline-block", animation: "none" }} />
-                      IN PROGRESS
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#D4A843", display: "inline-block" }} />
+                      IN PROGRESS{queued.length > 0 ? ` +${queued.length}` : ""}
                     </span>
                   ) : (
                     <span style={{ fontSize: 10, fontWeight: 600, color: "#444" }}>AVAILABLE</span>
@@ -2195,6 +2236,16 @@ function CourtsView({ state, tLabel, getAllMatches, assignCourt, onScore }) {
                     </span>
                   </div>
                 )}
+                {queued.length > 0 && (
+                  <div style={{ borderTop: "1px solid #141414", padding: "8px 14px", background: "#0c0c08" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#D4A843", marginBottom: 4 }}>⏳ Up Next ({queued.length})</div>
+                    {queued.map(qm => (
+                      <div key={qm.id} style={{ fontSize: 11, color: "#888", marginTop: 2 }}>
+                        {tLabel(qm.team1Id)} vs {tLabel(qm.team2Id)}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -2223,7 +2274,12 @@ function CourtsView({ state, tLabel, getAllMatches, assignCourt, onScore }) {
                     if (c) assignCourt(match.bracket === "Main" ? "main" : "consolation", match.roundIdx, match.id, c);
                   }} defaultValue="">
                   <option value="">Court...</option>
-                  {allCourts.map(c => <option key={c} value={c}>Ct {c}{occupiedCourts.has(c) ? " (in use)" : ""}</option>)}
+                  {allCourts.map(c => {
+                    const busy = occupiedCourts.has(c);
+                    const q = courtQueueCounts[c] || 0;
+                    const label = busy ? (q > 0 ? `Ct ${c} (in use +${q})` : `Ct ${c} (in use)`) : `Ct ${c}`;
+                    return <option key={c} value={c}>{label}</option>;
+                  })}
                 </select>
               </div>
             ))}
@@ -2863,7 +2919,7 @@ const S = {
   scoreRow: { display: "flex", alignItems: "center", gap: 10 },
   scoreLabel: { flex: 1, fontSize: 13, color: "#777" },
   scoreInput: { width: 60, padding: "6px 10px", background: "#080808", border: "1px solid #1e1e1e", borderRadius: 6, color: "#fff", fontSize: 16, fontWeight: 700, textAlign: "center", outline: "none" },
-  courtSelect: { padding: "6px 10px", background: "#080808", border: "1px solid #1e1e1e", borderRadius: 6, color: "#bbb", fontSize: 13, outline: "none", cursor: "pointer" },
+  courtSelect: { padding: "6px 10px", background: "#080808", border: "1px solid #1e1e1e", borderRadius: 6, color: "#bbb", fontSize: 13, outline: "none", cursor: "pointer", minWidth: 130 },
   roundTitle: { fontSize: 13, fontWeight: 700, color: "#555", margin: "0 0 10px", textTransform: "uppercase", letterSpacing: "0.08em" },
   courtGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 },
   notif: { position: "fixed", top: 16, right: 16, left: 16, padding: "12px 20px", borderRadius: 8, color: "#fff", fontSize: 14, fontWeight: 500, zIndex: 1000, boxShadow: "0 4px 20px rgba(0,0,0,0.5)", textAlign: "center" },
