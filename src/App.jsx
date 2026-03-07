@@ -2432,6 +2432,12 @@ function PlayerView({ state, tLabel, tFull, teamMap, mainWinner, consolationWinn
     const dayRounds = DAY_ROUND_CONFIG[bk]?.[dayFilter] || [];
     return m.status === "on_court" && dayRounds.includes(m.roundIdx + 1);
   });
+  const queuedMatches = allMatches.filter(m => {
+    if (dayFilter === "all") return m.status === "queued";
+    const bk = m.bracket === "Main" ? "main" : "consolation";
+    const dayRounds = DAY_ROUND_CONFIG[bk]?.[dayFilter] || [];
+    return m.status === "queued" && dayRounds.includes(m.roundIdx + 1);
+  });
   const waitingMatches = allMatches.filter(m => {
     if (dayFilter === "all") return m.status === "waiting";
     const bk = m.bracket === "Main" ? "main" : "consolation";
@@ -2452,12 +2458,13 @@ function PlayerView({ state, tLabel, tFull, teamMap, mainWinner, consolationWinn
     const won = match.winner && match.winner === myTeamId;
     const lost = match.winner && match.winner !== myTeamId && mine;
     const isForfeit = match.scores?.forfeit;
+    const isQueued = match.status === "queued";
     return (
       <div style={{
         padding: "10px 14px", borderRadius: 8,
         background: mine ? "#10160e" : "#0f0f0f",
         border: `1px solid ${mine ? "#3A8E6E30" : "#1a1a1a"}`,
-        borderLeft: `3px solid ${won ? "#3A8E6E" : lost ? "#E85D3A" : match.status === "on_court" ? "#D4A843" : mine ? "#3A8E6E40" : "#1e1e1e"}`,
+        borderLeft: `3px solid ${won ? "#3A8E6E" : lost ? "#E85D3A" : match.status === "on_court" ? "#D4A843" : isQueued ? "#D4A84380" : mine ? "#3A8E6E40" : "#1e1e1e"}`,
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4, gap: 6, flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -2494,8 +2501,11 @@ function PlayerView({ state, tLabel, tFull, teamMap, mainWinner, consolationWinn
         {match.status === "on_court" && match.startedAt && (
           <div style={{ fontSize: 10, color: "#D4A843", marginTop: 3 }}>Assigned {new Date(match.startedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</div>
         )}
+        {isQueued && match.court && (
+          <div style={{ fontSize: 10, color: "#D4A843", marginTop: 3 }}>{"⏳"} Up next on Court {match.court}</div>
+        )}
         {match.status === "completed" && formatDuration(match.startedAt, match.completedAt) && (
-          <div style={{ fontSize: 10, color: "#444", marginTop: 3 }}>⏱ {formatDuration(match.startedAt, match.completedAt)}</div>
+          <div style={{ fontSize: 10, color: "#444", marginTop: 3 }}>{"⏱"} {formatDuration(match.startedAt, match.completedAt)}</div>
         )}
       </div>
     );
@@ -2746,6 +2756,17 @@ function PlayerView({ state, tLabel, tFull, teamMap, mainWinner, consolationWinn
               <h2 style={{ ...S.cardTitle, color: "#D4A843" }}>🔴 Live — On Court Now</h2>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {liveMatches.map(m => <MatchRow key={m.id} match={m} showBracket={true} />)}
+              </div>
+            </div>
+          )}
+
+          {/* Queued — assigned to a court, waiting for current match to finish */}
+          {queuedMatches.length > 0 && (
+            <div style={S.card}>
+              <h2 style={{ ...S.cardTitle, color: "#D4A843" }}>{"⏳"} Up Next on Court</h2>
+              <p style={S.hint}>Assigned to a court — will start when current match finishes</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {queuedMatches.map(m => <MatchRow key={m.id} match={m} showBracket={true} />)}
               </div>
             </div>
           )}
